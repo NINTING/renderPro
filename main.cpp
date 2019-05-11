@@ -44,12 +44,16 @@ void fillMesh(std::vector<Vector>& list) {
 	}
 }
 
-void wareFrame(std::vector<Vector>& list) {
+void wireFrame(std::vector<Vector>& list) {
 	for (int i = 0; i < list.size(); i +=3) {
 		lineclip(list[i], list[i + 1]);
 		lineclip(list[i], list[i + 2]);
 		lineclip(list[i+1], list[i + 2]);
 	}
+}
+
+void Set3D(std::vector<Vector>&list) {
+
 }
 
 

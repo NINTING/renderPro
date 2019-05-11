@@ -20,6 +20,41 @@ struct Vector{
 
 }vertex,Vector;
 
+typedef
+struct Vector4 {
+	float _x, _y, _z,_w;
+	Vector4() {};
+	Vector4(float x, float y, float z,float w) :_x(x), _y(y), _z(z),_w(w) {};
+
+
+
+}vertex4, Vector4;
+
+
+
+class Matrix {
+public:
+	Matrix(float x11,float x12,float x13,float x14,
+			float x21,float x22 ,float x23,float x24,
+			float x31,float x32,float x33,float x34,
+			float x41,float x42,float x43,float x44);
+
+	float& operator () (int i, int j) { return value[i][j]; }
+	float operator () (int i, int j)const { return value[i][j]; }
+
+	
+
+
+	float value[4][4];
+
+};
+Matrix operator * (const Matrix &lrh, const Matrix &rsh);
+Matrix& operator *= (Matrix &lrh, Matrix &rsh);
+
+Vector4 operator * (const Vector4 &lrh, const Matrix &rsh);
+Vector4& operator *= (vertex4 &lrh, Matrix &rsh);
+
+
 //typedef
 //struct vector2 {
 //	float x, y;
