@@ -2,9 +2,11 @@
 
 
 
-Vector VecCross(const Vector& a, const Vector& b) {
-	return Vector(a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x);
-
+void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
+	 (*out)._w = 1.0f;
+	 (*out)._x = a._y*b._z - a._z*b._y;
+	 (*out)._y = a._z*b._x - a._x*b._z;
+	 (*out)._z = a._x*b._y - a._y*b._x;
 }
 
 
@@ -12,10 +14,10 @@ Vector VecCross(const Vector& a, const Vector& b) {
 //bresenham 直线画法			   |
 //---------------------------------
 
-void bresenham(const vertex &begin, const vertex& end) {
+void bresenham(const vertex4 &begin, const vertex4& end) {
 
 	int x1, y1, x2, y2;
-	x1 = begin.x, y1 = begin.y, x2 = end.x, y2 = end.y;
+	x1 = begin._x, y1 = begin._y, x2 = end._x, y2 = end._y;
 	bresenham(x1, y1, x2, y2);
 }
 
@@ -33,8 +35,9 @@ void bresenham(int x1,int y1, int x2,int y2) {
 		flag = 1;
 	}
 	int p = 2 * dy - dx;
+	
 	for (int i = 0; i < dx; i++) {
-		setPixel(x1, y1);
+		setPixel(x1, y1,Black);
 		if (p >= 0) {
 			if (!flag)y1 += sy;
 			else x1 += sx;
@@ -51,19 +54,19 @@ void bresenham(int x1,int y1, int x2,int y2) {
 //---------------------------------
 //扫描线              光栅化三角形|
 //---------------------------------
-void fillTriangle1(vertex v0, vertex v1, vertex v2) {			//scan line
+void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line
 	//sort on the y axis
-	if (v0.y > v1.y)std::swap(v0, v1);
-	if (v0.y > v2.y)std::swap(v0, v2);
-	if (v1.y > v2.y) std::swap(v1, v2);
+	if (v0._y > v1._y)std::swap(v0, v1);
+	if (v0._y > v2._y)std::swap(v0, v2);
+	if (v1._y > v2._y) std::swap(v1, v2);
 
 	//scan flat-top triangel
-	for (int y = v0.y; y <= v1.y; y++) {
-		float x1 = (float)(y - v0.y)*(v1.x - v0.x) / (v1.y - v0.y + 1) + v0.x;
-		float x2 = (float)(y - v0.y)*(v2.x - v0.x) / (v2.y - v0.y + 1) + v0.x;
+	for (int y = v0._y; y <= v1._y; y++) {
+		float x1 = (float)(y - v0._y)*(v1._x - v0._x) / (v1._y - v0._y + 1) + v0._x;
+		float x2 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
 		
 		//if (x1 > x2)std::swap(x1, x2);
-		vertex b(x1, y), e(x2, y);
+		Vector4 b(x1, y,0,1), e(x2, y,0,1);
 		lineclip(b, e);
 		/*for(int x = x1;x<=x2;x++)
 			setPixel(x, y);*/
@@ -71,93 +74,93 @@ void fillTriangle1(vertex v0, vertex v1, vertex v2) {			//scan line
 	}
 
 	//scan flat triangle
-	for (int y = v1.y; y <= v2.y; y++) {
-		float x1 = (float)(y - v0.y)*(v2.x - v0.x) / (v2.y - v0.y + 1) + v0.x;
-		float x2 = (float)(y - v1.y)*(v2.x - v1.x) / (v2.y - v1.y + 1) + v1.x;
+	for (int y = v1._y; y <= v2._y; y++) {
+		float x1 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
+		float x2 = (float)(y - v1._y)*(v2._x - v1._x) / (v2._y - v1._y + 1) + v1._x;
 	
 		//if (x1 > x2)std::swap(x1, x2);
 		/*for (int x = x1; x <= x2; x++)
 			setPixel(x, y);*/
-		vertex b(x1, y), e(x2, y);
+		Vector4 b(x1, y,0,1), e(x2, y,0,1);
 		lineclip(b,e);
 		
 	}
 
 
 }
+////---------------------------------
+////包围盒 判断重心坐标 光栅化三角形|
+////---------------------------------
+//
+//void fillTriangle2(const Vector4& v0, const Vector4& v1, const Vector4& v2) {
+//	//create BoundingBox
+//	Vector4 lmin(Width-1, Height-1,0,0),rmax(0,0,0,0);
+//	lmin._x = std::min(v0._x, std::min(v1._x, v2._x));
+//	lmin._y = std::min(v0._y, std::min(v1._y, v2._y));
+//	rmax._x = std::max(v0._x, std::max(v1._x, v2._x));
+//	rmax._y = std::max(v0._y, std::max(v1._y, v2._y));
+//
+//	lmin._x = std::max(0.0f, lmin._x);		lmin._y = std::max(0.0f, lmin._y);
+//	rmax._x = std::min(Width*1.0f, rmax._x);	rmax._y = std::min(Height*1.0f, rmax._y);
+//
+//	for (int y = rmax._y; y >= lmin._y; y--) {
+//		for (int x = lmin._x; x <= rmax._x; x++) {
+//			Vector4 p = barycentric(v0, v1, v2, Vector4(x, y));
+//			if (p._x < 0 || p._y < 0 || p.z < 0)
+//				continue;
+//			setPixel(x, y);
+//		}
+//	}
+//
+//}
+//
+//Vector4 barycentric(const Vector4& v0, const Vector4 &v1, const vertex4& v2,const vertex4& v) {
+//	Vector4 bary = VecCross(Vector4(v1._x-v0._x, v2._x - v0._x, v0._x - v._x), Vector4(v1._y - v0._y, v2._y - v0._y, v0._y - v._y));
+//	if (bary.z < 1)return Vector4(-1, 1, 1);
+//	float a = bary._x / bary.z, b = bary._y / bary.z;
+//	return Vector4(1.0f - a - b, a, b);
+//}
+//
+
+
 //---------------------------------
-//包围盒 判断重心坐标 光栅化三角形|
+//       2D直线裁剪				  |
 //---------------------------------
 
-void fillTriangle2(const vertex& v0, const vertex& v1, const vertex& v2) {
-	//create BoundingBox
-	vertex lmin(Width-1, Height-1),rmax(0,0);
-	lmin.x = std::min(v0.x, std::min(v1.x, v2.x));
-	lmin.y = std::min(v0.y, std::min(v1.y, v2.y));
-	rmax.x = std::max(v0.x, std::max(v1.x, v2.x));
-	rmax.y = std::max(v0.y, std::max(v1.y, v2.y));
-
-	lmin.x = std::max(0.0f, lmin.x);		lmin.y = std::max(0.0f, lmin.y);
-	rmax.x = std::min(Width*1.0f, rmax.x);	rmax.y = std::min(Height*1.0f, rmax.y);
-
-	for (int y = rmax.y; y >= lmin.y; y--) {
-		for (int x = lmin.x; x <= rmax.x; x++) {
-			Vector p = barycentric(v0, v1, v2, vertex(x, y));
-			if (p.x < 0 || p.y < 0 || p.z < 0)
-				continue;
-			setPixel(x, y);
-		}
-	}
-
-}
-
-Vector barycentric(const vertex& v0, const vertex &v1, const vertex& v2,const vertex& v) {
-	Vector bary = VecCross(Vector(v1.x-v0.x, v2.x - v0.x, v0.x - v.x), Vector(v1.y - v0.y, v2.y - v0.y, v0.y - v.y));
-	if (bary.z < 1)return Vector(-1, 1, 1);
-	float a = bary.x / bary.z, b = bary.y / bary.z;
-	return Vector(1.0f - a - b, a, b);
-}
-
-
-
-//---------------------------------
-//       直线裁剪				  |
-//---------------------------------
-
-int getcode(const vertex &v) {
+int getcode(const vertex4 &v) {
 	int p = 0;
-	if (v.x < Lx) p |= L;
-	if (v.y < By) p |= B;
-	if (v.y > Ty) p |= T;
-	if (v.x > Rx) p |= R;
+	if (v._x < Lx) p |= L;
+	if (v._y < By) p |= B;
+	if (v._y > Ty) p |= T;
+	if (v._x > Rx) p |= R;
 	return p;
 
 }
 
-void clip(int& code, vertex& v, const vertex &u) {
+void clip(int& code, vertex4& v, const vertex4 &u) {
 	if (code&L) {
-		v.y = v.y + (u.y - v.y)*(Lx - v.x) / (u.x - v.x);
-		v.x = Lx;
+		v._y = v._y + (u._y - v._y)*(Lx - v._x) / (u._x - v._x);
+		v._x = Lx;
 	}
 	else if (code&R) {
-		v.y = v.y + (u.y - v.y)*(Rx - v.x) / (u.x - v.x);
-		v.x = Rx;
+		v._y = v._y + (u._y - v._y)*(Rx - v._x) / (u._x - v._x);
+		v._x = Rx;
 	}
 	else if (code&T) {
-		v.x = v.x + (u.x - v.x)*(Ty - v.y) / (u.y - v.y);
-		v.y = Ty;
+		v._x = v._x + (u._x - v._x)*(Ty - v._y) / (u._y - v._y);
+		v._y = Ty;
 	}
 	else if (code&B) {
-		v.x = v.x + (u.x - v.x)*(By - v.y) / (u.y - v.y);
-		v.y = By;
+		v._x = v._x + (u._x - v._x)*(By - v._y) / (u._y - v._y);
+		v._y = By;
 	}
 	code = getcode(v);
 
 }
 
-void lineclip(vertex& a, vertex& b) {
+void lineclip(vertex4 a, vertex4 b) {
 
-	//	int x0 = a.x, int y0 = a.y, int x1 = b.x, int y1=b.y;
+	//	int x0 = a._x, int y0 = a._y, int x1 = b._x, int y1=b._y;
 	int p1 = 0, p2 = 0;
 	p1 = getcode(a); p2 = getcode(b);
 	if (p1&p2) return;
@@ -241,6 +244,12 @@ Vector4& operator *= (vertex4 &lsh, Matrix &rsh) {
 
 }
 
+Matrix getIdentity() {
+	return Matrix(1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f );
 
+}
 
 
