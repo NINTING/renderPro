@@ -35,7 +35,7 @@ void bresenham(int x1,int y1, int x2,int y2) {
 		flag = 1;
 	}
 	int p = 2 * dy - dx;
-	
+
 	for (int i = 0; i < dx; i++) {
 		setPixel(x1, y1,Black);
 		if (p >= 0) {
@@ -64,26 +64,26 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line
 	for (int y = v0._y; y <= v1._y; y++) {
 		float x1 = (float)(y - v0._y)*(v1._x - v0._x) / (v1._y - v0._y + 1) + v0._x;
 		float x2 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
-		
+
 		//if (x1 > x2)std::swap(x1, x2);
 		Vector4 b(x1, y,0,1), e(x2, y,0,1);
 		lineclip(b, e);
 		/*for(int x = x1;x<=x2;x++)
 			setPixel(x, y);*/
-		
+
 	}
 
 	//scan flat triangle
 	for (int y = v1._y; y <= v2._y; y++) {
 		float x1 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
 		float x2 = (float)(y - v1._y)*(v2._x - v1._x) / (v2._y - v1._y + 1) + v1._x;
-	
+
 		//if (x1 > x2)std::swap(x1, x2);
 		/*for (int x = x1; x <= x2; x++)
 			setPixel(x, y);*/
 		Vector4 b(x1, y,0,1), e(x2, y,0,1);
 		lineclip(b,e);
-		
+
 	}
 
 
@@ -166,12 +166,12 @@ void lineclip(vertex4 a, vertex4 b) {
 	if (p1&p2) return;
 	//if (!p1 && !p2)
 
-	while (p1 || p2) {			
+	while (p1 || p2) {
 		clip(p1, a, b);
 		clip(p2, b, a);
 	}
-		
-	
+
+
 	bresenham(a, b);
 }
 
@@ -184,7 +184,7 @@ void lineclip(vertex4 a, vertex4 b) {
 Matrix ::Matrix(float x11, float x12, float x13, float x14,
 	float x21, float x22, float x23, float x24,
 	float x31, float x32, float x33, float x34,
-	float x41, float x42, float x43, float x44) 
+	float x41, float x42, float x43, float x44)
 {
 	value[0][0] = x11, value[0][1] = x12, value[0][2] = x13, value[0][3] = x14;
 	value[1][0] = x21, value[1][1] = x22, value[1][2] = x23, value[1][3] = x24;
@@ -195,7 +195,7 @@ Matrix ::Matrix(float x11, float x12, float x13, float x14,
 Matrix& operator *= (Matrix &lsh,Matrix &rsh) {
 	lsh = lsh * rsh;
 	return lsh;
-	
+
 }
 
 Matrix operator * (const Matrix &lrh, const Matrix &rsh) {
@@ -229,7 +229,7 @@ Matrix operator * (const Matrix &lrh, const Matrix &rsh) {
 
 
 Vector4 operator * (const Vector4 &lrh, const Matrix &rsh) {
-	
+
 	float x = lrh._x * rsh(0, 0) + lrh._y * rsh(1, 0) + lrh._z * rsh(2, 0) + lrh._w * rsh(3, 0);
 	float y = lrh._x * rsh(0, 1) + lrh._y * rsh(1, 1) + lrh._z  * rsh(2, 1) + lrh._w * rsh(3, 1);
 	float z = lrh._x * rsh(0, 2) + lrh._y * rsh(1, 2) + lrh._z  * rsh(2, 2) + lrh._w * rsh(3, 2);
@@ -253,19 +253,52 @@ Matrix getIdentity() {
 
 }
 
-void RotationAxisX(Vector4*out,const Vector4* v,float theta){
-	Matrix Rx;
-	Rx(0,0) = 1.0f;
-	Rx(1,1) = cos(theta);
-	Rx(1,2) = sin(theta);
-	Rx(2,1) = -sin(theta);
-	Rx(2,2) = cos(theta);
-	Rx(3,3) = 1.0f;
-	
-	
-	
+void RotationAxisX(Matrix*out, v,float theta){
+
+	out(0,0) = 1.0f;
+	out(1,1) = cos(theta);
+	out(1,2) = sin(theta);
+	out(2,1) = -sin(theta);
+	out(2,2) = cos(theta);
+	out(3,3) = 1.0f;
+}
+void RotationAxisY(Matrix*out, v,float theta){
+
+	out(1,1) = 1.0f;
+	out(0,0) = cos(theta);
+	out(0,2) = -sin(theta);
+	out(2,0) = sin(theta);
+	out(2,2) = cos(theta);
+	out(3,3) = 1.0f;
+}
+void RotationAxisZ(Matrix*out, v,float theta){
+
+
+	out(0,0) = cos(theta);
+	out(0,1) = sin(theta);
+	out(2,0) = -sin(theta);
+	out(1,1) = cos(theta);
+	out(2,2) = 1.0f;
+	out(3,3) = 1.0f;
 }
 
 
+
+void RotationAxis(Matrix*out, v,const Vector4& axis,float theta){
+    float cosT = cosf(theta);
+    float sinT = cosf(theta);
+    float oneSubc = 1.0f-cosT;
+
+    float x = axis.x;
+    float y = axis.y;
+    float z = axis.z;
+
+    out(0,0) = x*x*oneSubc+cosT; out(0,1) = x*y*oneSubc+x*sinT; out(0,2) = x*z*oneSubc-y*sinT;
+
+
+
+
+
+}
 
 
