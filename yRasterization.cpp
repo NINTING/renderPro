@@ -245,11 +245,27 @@ Vector4& operator *= (vertex4 &lsh, Matrix &rsh) {
 }
 
 Matrix getIdentity() {
-	return Matrix(1.0f, 0.0f, 0.0f, 0.0f,
+	return Matrix(
+		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f );
 
 }
+
+void RotationAxisX(Vector4*out,const Vector4* v,float theta){
+	Matrix Rx;
+	Rx(0,0) = 1.0f;
+	Rx(1,1) = cos(theta);
+	Rx(1,2) = sin(theta);
+	Rx(2,1) = -sin(theta);
+	Rx(2,2) = cos(theta);
+	Rx(3,3) = 1.0f;
+	
+	
+	
+}
+
+
 
 
