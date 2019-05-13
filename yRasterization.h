@@ -13,7 +13,7 @@ const int Width = 600, Height = 600;
 const int Lx = 0, Rx = Width, Ty = Height, By = 0;
 
 //---------------------------------
-//       向量声明				  |
+//       鍚戦噺澹版槑				  |
 //---------------------------------
 
 #define indeiceBuffer int
@@ -37,7 +37,7 @@ struct Color
 };
 const Color Black(0, 0, 0);
 //---------------------------------
-//       矩阵声明				  |
+//       鐭╅樀澹版槑				  |
 //---------------------------------
 
 class Matrix {
@@ -77,7 +77,7 @@ void VecCross(Vector4 *out,const Vector4& a, const Vector4& b);
 
 
 //---------------------------------
-//       	直线裁剪声明		  |
+//       	鐩寸嚎瑁佸壀澹版槑		  |
 //---------------------------------
 
 
@@ -90,7 +90,7 @@ void lineclip(Vector4 a, Vector4 b);
 void setPixel(int x, int y,Color color);
 
 //---------------------------------
-//       光栅化三角形			  |
+//       鍏夋爡鍖栦笁瑙掑舰			  |
 //---------------------------------
 
 void fillTriangle1(Vector4 v0,Vector4 v1,Vector4 v2);
@@ -99,7 +99,7 @@ void fillTriangle1(Vector4 v0,Vector4 v1,Vector4 v2);
 //Vector4 barycentric(const Vector4& v0, const Vector4 &v1, const Vector4& v2, const Vector4& v);
 
 //---------------------------------
-//       bresenham画线			  |
+//       bresenham鐢荤嚎			  |
 //---------------------------------
 
 void bresenham(const Vector4 &begin, const Vector4& end);
