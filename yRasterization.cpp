@@ -65,11 +65,11 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line
 		float x1 = (float)(y - v0._y)*(v1._x - v0._x) / (v1._y - v0._y + 1) + v0._x;
 		float x2 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
 
-		//if (x1 > x2)std::swap(x1, x2);
+		if (x1 > x2)std::swap(x1, x2);
 		Vector4 b(x1, y,0,1), e(x2, y,0,1);
 		lineclip(b, e);
-		/*for(int x = x1;x<=x2;x++)
-			setPixel(x, y);*/
+		for(int x = b._x;x<=e._x;x++)
+			setPixel(x, y,Black);
 
 	}
 
@@ -158,7 +158,7 @@ void clip(int& code, vertex4& v, const vertex4 &u) {
 
 }
 
-void lineclip(vertex4 a, vertex4 b) {
+void lineclip(vertex4 &a, vertex4 &b) {
 
 	//	int x0 = a._x, int y0 = a._y, int x1 = b._x, int y1=b._y;
 	int p1 = 0, p2 = 0;
@@ -172,14 +172,54 @@ void lineclip(vertex4 a, vertex4 b) {
 	}
 
 
-	bresenham(a, b);
+
 }
 
+//---------------------------------
+//       向量相关函数			  |
+//---------------------------------
 
+Vector4 operator - (const Vector4& lsh, const Vector4& rsh) {
+	return Vector4(lsh._x - rsh._x, lsh._y - rsh._y, lsh._z - rsh._z,0);
+	
+}
+
+Vector4& operator -= (Vector4& lsh, const Vector4& rsh) {
+	lsh = lsh - rsh;
+	return lsh;
+}
+
+Vector4 operator + (const Vector4& lsh, const Vector4& rsh) {
+	return Vector4(lsh._x + rsh._x, lsh._y + rsh._y, lsh._z + rsh._z, 0);
+
+
+}
+
+Vector4& operator += (Vector4& lsh, const Vector4& rsh) {
+	lsh = lsh + rsh;
+	return lsh;
+
+}
+
+void VecNormalize(Vector4 & out,const Vector4& in) {
+	float x = in._x, y = in._y, z = in._z;
+	
+	float k = sqrt(x * x + y * y + z * z);
+
+	out._x = in._x / k, out._y = in._y / k, out._z = in._z / k;
+}
+
+float operator * (const Vector4& lsh, const Vector4& rsh) {
+	return lsh._x*rsh._x + lsh._y*rsh._y + lsh._z*rsh._z;
+
+}
 
 //---------------------------------
 //       矩阵相关函数			  |
 //---------------------------------
+
+
+
 
 Matrix ::Matrix(float x11, float x12, float x13, float x14,
 	float x21, float x22, float x23, float x24,
@@ -188,9 +228,20 @@ Matrix ::Matrix(float x11, float x12, float x13, float x14,
 {
 	value[0][0] = x11, value[0][1] = x12, value[0][2] = x13, value[0][3] = x14;
 	value[1][0] = x21, value[1][1] = x22, value[1][2] = x23, value[1][3] = x24;
-	value[2][0] = x11, value[2][1] = x22, value[2][2] = x33, value[2][3] = x34;
-	value[3][0] = x11, value[3][1] = x22, value[3][2] = x43, value[3][3] = x44;
+	value[2][0] = x31, value[2][1] = x32, value[2][2] = x33, value[2][3] = x34;
+	value[3][0] = x41, value[3][1] = x42, value[3][2] = x43, value[3][3] = x44;
 }
+
+
+
+void MatrxIdentity(Matrix &out) {
+	out(0, 0) = 1.0f;
+	out(1, 1) = 1.0f;
+	out(2, 2) = 1.0f;
+	out(3, 3) = 1.0f;
+
+}
+
 
 Matrix& operator *= (Matrix &lsh,Matrix &rsh) {
 	lsh = lsh * rsh;
@@ -253,7 +304,7 @@ Matrix getIdentity() {
 
 }
 
-void RotationAxisX(Matrix*out, v,float theta){
+void RotationAxisX(Matrix&out,float theta){
 
 	out(0,0) = 1.0f;
 	out(1,1) = cos(theta);
@@ -262,7 +313,7 @@ void RotationAxisX(Matrix*out, v,float theta){
 	out(2,2) = cos(theta);
 	out(3,3) = 1.0f;
 }
-void RotationAxisY(Matrix*out, v,float theta){
+void RotationAxisY(Matrix& out,float theta){
 
 	out(1,1) = 1.0f;
 	out(0,0) = cos(theta);
@@ -271,7 +322,7 @@ void RotationAxisY(Matrix*out, v,float theta){
 	out(2,2) = cos(theta);
 	out(3,3) = 1.0f;
 }
-void RotationAxisZ(Matrix*out, v,float theta){
+void RotationAxisZ(Matrix& out,float theta){
 
 
 	out(0,0) = cos(theta);
@@ -284,21 +335,88 @@ void RotationAxisZ(Matrix*out, v,float theta){
 
 
 
-void RotationAxis(Matrix*out, v,const Vector4& axis,float theta){
+void RotationAxis(Matrix&out,const Vector4& axis,float theta){
     float cosT = cosf(theta);
     float sinT = cosf(theta);
     float oneSubc = 1.0f-cosT;
 
-    float x = axis.x;
-    float y = axis.y;
-    float z = axis.z;
+    float x = axis._x;
+    float y = axis._y;
+    float z = axis._z;
 
     out(0,0) = x*x*oneSubc+cosT; out(0,1) = x*y*oneSubc+x*sinT; out(0,2) = x*z*oneSubc-y*sinT;
+	out(0, 0) = x * y*oneSubc - z*sinT; out(0, 1) = y * y*oneSubc + cosT; out(0, 2) = y * z*oneSubc - x * sinT;
+	out(0, 0) = x * z*oneSubc + y*sinT; out(0, 1) = z * y*oneSubc - x * sinT; out(0, 2) = z * z*oneSubc + cosT;
+	out(3, 3) = 1;
+}
 
 
 
+void viewMatrix(Matrix&out,const Vector4& at,const Vector4& view,const Vector4& up) {
+	
+	Vector4 Z = view - at;
+	Vector4 X,Y;
+	VecNormalize(Z,Z);
+	VecCross(&X, up, Z);
+	VecNormalize(X, X);
+	VecCross(&Y, Z, X);
+	VecNormalize(Y, Y);
+	
+	out(0, 0) = X._x;
+	out(1, 0) = X._y;
+	out(2, 0) = X._z;
+	out(3, 0) = -(at * X);
 
+	out(0, 1) = Y._x;
+	out(1, 1) = Y._y;
+	out(2, 1) = Y._z;
+	out(3, 1) = -(at * Y);
+
+	out(0, 2) = Z._x;
+	out(1, 2) = Z._y;
+	out(2, 2) = Z._z;
+	out(3, 2) = -(at * Z);
+
+	out(0, 3) = 0.0f;
+	out(1, 3) = 0.0f;
+	out(2, 3) = 0.0f;
+	out(3, 3) = 1.0f;
 
 }
 
 
+
+
+//---------------------------------
+//      背面消隐				  |
+//---------------------------------
+
+
+//正面为逆时针方向构成
+bool backCull(const vertex4& a,const vertex4& b,const vertex4& c) {
+	Vector4 u = b - a;
+	Vector4 v = a - c;
+	
+	Vector4 zero(0, 0, 0, 0);
+	Vector4 normal;
+	VecCross(&normal, v, u);
+	Vector4 view = a - zero;
+	
+	float cosT = view * normal;
+	if (cosT <= 0) 
+		return false;
+	return true;
+}
+
+//---------------------------------
+//       线性插值				  |
+//---------------------------------
+
+void slerp(float* s, float* t, vertex4 v0, vertex4 v1, vertex4 v2) {
+
+
+}
+void Zslerp(const vertexArr *va1, const vertexArr *va2, vertexArr *out, float t) {
+
+
+}

@@ -44,31 +44,52 @@ void fillMesh(std::vector<Vector4>& list) {
 	}
 }
 
-void wireFrame(std::vector<Vector4>& list) {
+void wireFrame(std::vector<Vector4> list) {
 	for (int i = 0; i < list.size(); i +=3) {
 		lineclip(list[i], list[i + 1]);
+		bresenham(list[i], list[i + 1]);
+		
 		lineclip(list[i], list[i + 2]);
+		bresenham(list[i], list[i + 2]);
+		
 		lineclip(list[i+1], list[i + 2]);
+		bresenham(list[i+1], list[i + 2]);
 	}
 }
 
-//默认投影面距离原点为1 即d = 1；
-void PerspectiveMatrix(Matrix * Pm) {
-	float Right = Width*0.5f, Left = -Right;
-	float Top = Height*0.5f, Bottom = -Top;
-	const float near = 1.0f, far = 500.0f;
-	float a = (float)far / (float)(far - near), b = (float)(far*near) / (float)(near - far);
-	 (*Pm)(0, 0) = 2 * near / (Right - Left);
-	 (*Pm)(1, 1) = 2 * near / (Top - Bottom);
-	 (*Pm)(2, 2) = a;
-	 (*Pm)(3, 2) = b;
-	 (*Pm)(2, 3) = 1.0f;
+////默认投影面距离原点为1 即d = 1；
+//void PerspectiveMatrix(Matrix * Pm) {
+//	float Right = Width*0.5f, Left = -Right;	
+//	float Top = Height*0.5f, Bottom = -Top;
+//	const float near = 1.0f, far = 500.0f;
+//	float a = (float)far / (float)(far - near), b = -(float)(far*near) / (float)(far - near);
+//	 (*Pm)(0, 0) = 2 * near / (Right - Left);
+//	 (*Pm)(1, 1) = 2 * near / (Top - Bottom);
+//	 (*Pm)(2, 0) = (float)(Left + Right) / (float)(Left - Right)*1.0f;
+//	 (*Pm)(2, 1) = (float)(Bottom + Top) / (float)(Bottom - Top)*1.0f;
+//	 (*Pm)(2, 2) = a;
+//	 (*Pm)(3, 2) = b;
+//	 (*Pm)(2, 3) = 1.0f;
+//}
+
+
+void PerspectiveMatrix(Matrix * Pm, float fov,float Aspect,float near,float far) {
+	float cot = 1 / (float)tanf(fov*0.5f);
+
+	(*Pm)(0, 0) = cot / Aspect;
+	(*Pm)(1, 1) = cot;
+	(*Pm)(2, 2) = far / (far - near);
+	(*Pm)(3, 2) = -far*near / (far - near);
+	(*Pm)(2, 3) = 1.0f;
 }
 
+
 void toScreen(Vector4 *p){
+
+	int X = 0, Y = 0;
 	float dw = 1.0f / p->_w;
-	p->_x = (p->_x*dw + 1.0f)*Width *0.5f;
-	p->_y = (-p->_y*dw + 1.0f)*Height*0.5f;
+	p->_x = (p->_x*dw + 1.0f)*Width *0.5f+X;
+	p->_y = (-p->_y*dw + 1.0f)*Height*0.5f+Y;
 	p->_z = p->_z*dw;
 	p->_w = 1.0f;
 }
@@ -89,57 +110,90 @@ void release(t * arr) {
 }
 
 
-void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, const vector<vertex4>&vb) {
-	Matrix Pm;
-	size_t size = vb.size() * 3;
-	PerspectiveMatrix(&Pm);
-	(*outlist).resize(size);
+void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, const vector<vertex4>&vb,int TriangleNum) {
+	Matrix Pm, Vm, tranMatrix;
+	size_t size = TriangleNum * 3;
+
+	PerspectiveMatrix(&Pm,PI*0.5,Width/Height,1,500);
+	//(*outlist).resize(size);
+	MatrxIdentity(Vm);
+	Vector4 at(0,605.0,0.0f, 1), view(0.0f, 0.0f,0.0f, 1), up(0, 0, 1, 0);
+
+	viewMatrix(Vm, at, view, up);
+	tranMatrix = Vm * Pm;
+	Vector4 a, b, c;
 	for (int i = 0; i <size; i += 3) {
-		MatrixApply(&(*outlist)[i], vb[ib[i]], Pm);
-		MatrixApply(&(*outlist)[i + 1], vb[ib[i + 1]], Pm);
-		MatrixApply(&(*outlist)[i + 2], vb[ib[i + 2]], Pm);
+		MatrixApply(&a, vb[ib[i]], tranMatrix);
+		MatrixApply(&b, vb[ib[i + 1]], tranMatrix);
+		MatrixApply(&c, vb[ib[i + 2]],tranMatrix);
+	
+		//背面消隐
+		if (backCull(a, b, c)) {
+			outlist->push_back(a);
+			outlist->push_back(b);
+			outlist->push_back(c);
+		}
 	}
+
+
+
+	//for (int i = 0; i < size; i += 3) {
+	//	MatrixApply(&(*outlist)[i], vb[ib[i]], Vm);
+	//	MatrixApply(&(*outlist)[i], (*outlist)[i], Pm);
+	//	MatrixApply(&(*outlist)[i + 1], vb[ib[i + 1]],Vm);
+	//	MatrixApply(&(*outlist)[i + 1], (*outlist)[i + 1], Pm);
+	//	MatrixApply(&(*outlist)[i + 2], vb[ib[i + 2]], Vm);
+	//	MatrixApply(&(*outlist)[i + 2], (*outlist)[i + 2], Pm);
+	//}
+	size = outlist->size();
 	for (int i = 0; i < size; i++) {
 		toScreen(&(*outlist)[i]);
 	}
 	
 }
 
-void vertexProcessPipeline(vector<vertex4>* outlist,const vector<vertex4>& list) {
-	Matrix Pm;
-	PerspectiveMatrix(&Pm);
-	(*outlist).resize(list.size());
-	for (int i = 0; i < list.size(); i += 3) {
-		MatrixApply(&(*outlist)[i], list[i], Pm);
-		MatrixApply(&(*outlist)[i+1], list[i + 1], Pm);
-		MatrixApply(&(*outlist)[i+2], list[i + 2], Pm);
-	}
-	for (int i = 0; i < list.size(); i++) {
-		toScreen(&(*outlist)[i]);
-	}
-}
+//void vertexProcessPipeline(vector<vertex4>* outlist,const vector<vertex4>& list) {
+//	Matrix Pm,Vm , tranMatrix;
+//	
+//	PerspectiveMatrix(&Pm);
+//	MatrxIdentity(Vm);
+//	Vector4 at(0, 0,-150.0f, 1), view(0, 0, 1, 0), up(0, 1,0 , 0);
+//
+//	viewMatrix(Vm, at, view, up);
+//	tranMatrix =  Vm*Pm;
+//	(*outlist).resize(list.size());
+//	for (int i = 0; i < list.size(); i += 3) {
+//		MatrixApply(&(*outlist)[i], list[i], tranMatrix);
+//		MatrixApply(&(*outlist)[i+1], list[i + 1], tranMatrix);
+//		MatrixApply(&(*outlist)[i+2], list[i + 2], tranMatrix);
+//	}
+//	for (int i = 0; i < list.size(); i++) {
+//		toScreen(&(*outlist)[i]);
+//	}
+//}
 
 int main() {
 	memset(img, 255, sizeof(img));
 	//float cx = Width * 0.5f - 0.5f, cy = Height * 0.5f - 0.5f;
-	vertex4 a(-300, 0, 2, 1), b(300, 0, 2, 1), c(0, 300, 2, 1),d(0,0,300,1);
+	vertex4 a(600.0f, 0, 0.0f, 1), b(0.0f, 0.0f, 600.0f, 1), c(-600.0f, 0.0f,0.0f, 1),d(0.0f,0.0f,-600.0f,1),e(0.0f,600.0f,0.0f,1.0f);
 	
 	indeiceBuffer* ib = 0;
-	vector<Vector4>list{a,b,c,d};
-	applyForIndeices(&ib, list.size()*3);
-	
-	ib[0] = 0, ib[1] = 1, ib[2] = 2;
-	ib[3] = 1, ib[4] = 3, ib[5] = 2;
-	ib[6] = 0, ib[7] = 3, ib[8] = 2;
-	ib[9] = 0, ib[10] = 1, ib[11] = 3;
+	vector<Vector4>list{a,b,c,d,e};
+	applyForIndeices(&ib, 4*3);
+
+	ib[0] = 0, ib[1] = 1, ib[2] = 4;
+	ib[3] = 1, ib[4] = 2, ib[5] = 4;
+	ib[6] = 2, ib[7] = 3, ib[8] = 4;
+	ib[9] = 3, ib[10] = 0, ib[11] = 4;
+
 	vector<vertex4> outlist;	
-	IndeicesProcessPipeline(&outlist, ib, list);
+	IndeicesProcessPipeline(&outlist, ib, list,4);
 	wireFrame(outlist);
 
 	release(ib);
 	//fillTriangle2(a, b, c);
 	//wareFrame(list);
-	draw("color1.ppm");
+	draw("color3.ppm");
 
 	
 }
