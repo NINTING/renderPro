@@ -19,14 +19,40 @@ const int Lx = 0, Rx = Width, Ty = Height, By = 0;
 
 #define indeiceBuffer int
 
+struct Color
+{
+	unsigned char _r, _g, _b;
+	Color() = default;
+	Color(unsigned char r, unsigned char g, unsigned char b) :_r(r), _g(g), _b(b) {}
+};
+Color operator +(const Color& a, const Color&b);
+Color& operator +=(Color& a, const Color&b);
+Color operator *(const Color& a, const Color&b);
+Color& operator *=(Color& a, const Color&b);
+Color operator *(const Color& a, float t);
+Color& operator *=(Color& a, float t);
+
+
+const Color Black(0, 0, 0);
+const Color White(255, 255, 255);
+const Color Red(255, 0, 0);
+const Color Yellow(0, 255, 0);
+const Color Blue(0, 0, 255);
+
+
 typedef
 struct Vector4 {
 	float _x, _y, _z,_w;
+	Color _c;
+	float rhw;
 	Vector4() {
 		_x = 0.0f, _y = 0.0f, _z = 0.0f,_w = 0.0f;
+		_c = Black; rhw = _z;
 	};
-	Vector4(float x, float y, float z,float w) :_x(x), _y(y), _z(z),_w(w) {};
-
+	
+	Vector4(float x, float y, float z, float w) :_x(x), _y(y), _z(z), _w(w) { _c = Black; rhw = _z; };
+	Vector4(float x, float y, float z, float w, Color c) :_x(x), _y(y), _z(z), _w(w), _c(c) { rhw = _z; };
+	Vector4(float x, float y, float z, float w, Color c,float rhw) :_x(x), _y(y), _z(z), _w(w), _c(c),rhw(rhw) { };
 
 }vertex4, Vector4;
 
@@ -42,20 +68,9 @@ float operator * (const Vector4& lsh, const Vector4& rsh );
 
 void VecNormalize(Vector4 & out,const Vector4& in);
 
-struct Color
-{
-	unsigned char _r, _g, _b;
-	Color() = default;
-	Color(unsigned char r, unsigned char g, unsigned char b):_r(r),_g(g),_b(b){}
-};
-const Color Black(0, 0, 0);
 
-struct vertexArr{ 
-	vertex4 pos; 
-	Color c;
-	float Zrec;
-	vertexArr() {};
-};
+
+
 //---------------------------------
 //       矩阵声明				  |
 //---------------------------------
@@ -79,7 +94,7 @@ public:
 Matrix getIdentity();
 
 Matrix operator * (const Matrix &lrh, const Matrix &rsh);
-Matrix& operator *= (Matrix &lrh, Matrix &rsh);
+Matrix& operator *= (Matrix &lrh, const Matrix &rsh);
 
 Vector4 operator * (const Vector4 &lrh, const Matrix &rsh);
 Vector4& operator *= (vertex4 &lrh, Matrix &rsh);
@@ -156,8 +171,9 @@ void bresenham(int x1, int y1, int x2, int y2);
 //       线性插值				  |
 //---------------------------------
 
-void slerp(float* s, float* t, vertex4 v0, vertex4 v1, vertex4 v2);
-void Zslerp(const vertexArr *va1, const vertexArr *va2, vertexArr *out, float t);
+float interp(float a, float b, float t);
+void vertexInterp(vertex4 *out, const vertex4 &v0, const vertex4 &v1, float t);
+//void Zslerp(const vertexArr *va1, const vertexArr *va2, vertexArr *out, float t);
 
 //---------------------------------
 //       流水线处理 			  |

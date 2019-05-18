@@ -9,6 +9,27 @@ void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
 	 (*out)._z = a._x*b._y - a._y*b._x;
 }
 
+//---------------------------------
+//			color 运算			   |
+//---------------------------------
+Color operator +(const Color& a, const Color&b) {
+	return Color(a._r + b._r, a._g + b._g, a._b + b._b);
+}
+Color& operator +=(Color& a, const Color&b) {
+	a = a + b;
+	return a;
+}
+Color operator *(const Color& a, const Color&b);
+
+Color& operator *=(Color& a, const Color&b);
+Color operator *(const Color& a, float t) {
+	return Color(a._r*t, a._g *t, a._b*t);
+}
+Color& operator *=(Color& a, float t) {
+	return a = a * t;
+	
+}
+
 
 //---------------------------------
 //bresenham 直线画法			   |
@@ -54,40 +75,78 @@ void bresenham(int x1,int y1, int x2,int y2) {
 //---------------------------------
 //扫描线              光栅化三角形|
 //---------------------------------
-void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line
-	//sort on the y axis
+void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line															//sort on the y axis
 	if (v0._y > v1._y)std::swap(v0, v1);
 	if (v0._y > v2._y)std::swap(v0, v2);
 	if (v1._y > v2._y) std::swap(v1, v2);
 
 	//scan flat-top triangel
-	for (int y = v0._y; y <= v1._y; y++) {
-		float x1 = (float)(y - v0._y)*(v1._x - v0._x) / (v1._y - v0._y + 1) + v0._x;
-		float x2 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
+	for (int y = v0._y; y < v1._y; y++) {
+		float d1 = (float)(y - v0._y) / (float)(v1._y - v0._y + 1);
+		float d2 = (float)(y - v0._y) / (float)(v2._y - v0._y + 1);
+		
+		vertex4 lv, rv;
+		lv._y = rv._y = y;
+		vertexInterp(&lv, v0, v1,d1);
+		vertexInterp(&rv, v0, v2,d2);
+		if (lv._x > rv._x)std::swap(lv, rv);
+		//lineclip(lv, rv);
+		float bstep = (rv._c._b - lv._c._b) / (rv._x - lv._x);
+		float gstep = (rv._c._g - lv._c._g) / (rv._x - lv._x);
+		float rstep = (rv._c._r - lv._c._r) / (rv._x - lv._x);
+		float zstep = (rv.rhw - lv.rhw) / (rv._x - lv._x);
 
-		if (x1 > x2)std::swap(x1, x2);
-		Vector4 b(x1, y,0,1), e(x2, y,0,1);
-		lineclip(b, e);
-		for(int x = b._x;x<=e._x;x++)
-			setPixel(x, y,Black);
+		float overb, overg, overr, overz;
+		int x;
+		for (x = lv._x,overb = lv._c._b, overg = lv._c._g, overr = lv._c._r,overz = lv.rhw; x <= rv._x;
+			x++,overb+=bstep,overg+=gstep,overr+=rstep,overz+=zstep) {
+			Color c(overr/overz, overg/overz, overb/overz);
+			setPixel(x,y,c);
+		}
 
 	}
-
 	//scan flat triangle
 	for (int y = v1._y; y <= v2._y; y++) {
-		float x1 = (float)(y - v0._y)*(v2._x - v0._x) / (v2._y - v0._y + 1) + v0._x;
-		float x2 = (float)(y - v1._y)*(v2._x - v1._x) / (v2._y - v1._y + 1) + v1._x;
 
-		//if (x1 > x2)std::swap(x1, x2);
-		/*for (int x = x1; x <= x2; x++)
-			setPixel(x, y);*/
-		Vector4 b(x1, y,0,1), e(x2, y,0,1);
-		lineclip(b,e);
+		float d1 = (float)(y - v0._y) / (float)(v2._y - v0._y + 1);
+		float d2 = (float)(y - v1._y) / (float)(v2._y - v1._y + 1);
 
+		vertex4 lv, rv;
+		lv._y = rv._y = y;
+		vertexInterp(&lv, v0, v2, d1);
+		vertexInterp(&rv, v1, v2, d2);
+		if (lv._x > rv._x)std::swap(lv, rv);
+		//lineclip(lv, rv);
+		float bstep = (rv._c._b - lv._c._b) / (rv._x - lv._x);
+		float gstep = (rv._c._g - lv._c._g) / (rv._x - lv._x);
+		float rstep = (rv._c._r - lv._c._r) / (rv._x - lv._x);
+		float zstep = (rv.rhw - lv.rhw) / (rv._x - lv._x);
+
+		float overb, overg, overr, overz;
+		int x;
+		for (x = lv._x, overb = lv._c._b, overg = lv._c._g, overr = lv._c._r, overz = lv.rhw; x <= rv._x;
+			x++, overb += bstep, overg += gstep, overr += rstep, overz += zstep) {
+			Color c(overr / overz, overg / overz, overb / overz);
+			setPixel(x, y, c);
+		}
 	}
 
 
 }
+
+void vertexInterp(vertex4 *out,const vertex4 &v0, const vertex4 &v1,float t) {
+
+	out->_x = interp(v0._x, v1._x, t);
+	float BoneOverZ = 1.0 / v0.rhw;
+	float ToneOverZ = 1.0 / v1.rhw;	
+
+	out->rhw = interp(BoneOverZ, ToneOverZ, t);
+	out->_c._b = interp(v0._c._b*BoneOverZ, v1._c._b*ToneOverZ, t);
+	out->_c._r = interp(v0._c._r*BoneOverZ, v1._c._r*ToneOverZ, t);
+	out->_c._g = interp(v0._c._g*BoneOverZ, v1._c._g*ToneOverZ, t);
+
+}
+
 ////---------------------------------
 ////包围盒 判断重心坐标 光栅化三角形|
 ////---------------------------------
@@ -412,11 +471,7 @@ bool backCull(const vertex4& a,const vertex4& b,const vertex4& c) {
 //       线性插值				  |
 //---------------------------------
 
-void slerp(float* s, float* t, vertex4 v0, vertex4 v1, vertex4 v2) {
-
-
-}
-void Zslerp(const vertexArr *va1, const vertexArr *va2, vertexArr *out, float t) {
-
+float interp(float a,float b,float t) {
+	return (b - a)*t + a;
 
 }

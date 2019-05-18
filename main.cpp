@@ -36,7 +36,11 @@ void setPixel(int x, int y,Color color) {
 	unsigned char *p = img + (y*Width + x) * 3;
 	p[0] = color._r, p[1] = color._g, p[2] = color._b;
 }
-
+void setPixel(const vertex4& v) {
+	int y = v._y,	x = v._x;
+	unsigned char *p = img + (y*Width + x) * 3;
+	p[0] = v._c._r, p[1] = v._c._g, p[2] = v._c._b;
+}
 
 void fillMesh(std::vector<Vector4>& list) {
 	for (int i = 0; i < list.size(); i+=3) {
@@ -56,6 +60,8 @@ void wireFrame(std::vector<Vector4> list) {
 		bresenham(list[i+1], list[i + 2]);
 	}
 }
+
+
 
 ////默认投影面距离原点为1 即d = 1；
 //void PerspectiveMatrix(Matrix * Pm) {
@@ -109,23 +115,37 @@ void release(t * arr) {
 	arr = 0;
 }
 
+Matrix tranMatrix;
+
+void setMatrix(const Matrix& m) {
+	tranMatrix *= m;
+}
 
 void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, const vector<vertex4>&vb,int TriangleNum) {
-	Matrix Pm, Vm, tranMatrix;
+	Matrix Pm, Vm;
 	size_t size = TriangleNum * 3;
 
 	PerspectiveMatrix(&Pm,PI*0.5,Width/Height,1,500);
 	//(*outlist).resize(size);
 	MatrxIdentity(Vm);
-	Vector4 at(0,605.0,0.0f, 1), view(0.0f, 0.0f,0.0f, 1), up(0, 0, 1, 0);
+	
+	//Vector4 at(0,0.0f,-5.0f, 1), view(0.0f, 0.0f,0.0f, 1), up(0,1, 0, 0);
+	Vector4 at(3, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
 
+	
 	viewMatrix(Vm, at, view, up);
 	tranMatrix = Vm * Pm;
 	Vector4 a, b, c;
 	for (int i = 0; i <size; i += 3) {
+		
 		MatrixApply(&a, vb[ib[i]], tranMatrix);
+		a._c = vb[ib[i]]._c; a.rhw = a._z;
+		
 		MatrixApply(&b, vb[ib[i + 1]], tranMatrix);
+		b._c = vb[ib[i + 1]]._c; b.rhw = b._z;
+		
 		MatrixApply(&c, vb[ib[i + 2]],tranMatrix);
+		c._c = vb[ib[i + 2]]._c; c.rhw =c._z;
 	
 		//背面消隐
 		if (backCull(a, b, c)) {
@@ -172,14 +192,86 @@ void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, c
 //	}
 //}
 
+void triangleTest() {
+	
+	vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.50f, 0.0f, 1, Red), c(0.0f, -1.0f, 0.0f, 1, Red);
+	indeiceBuffer* ib = 0;
+	vector<Vector4>list{ a,b,c };
+	applyForIndeices(&ib, 3);
+
+	ib[0] = 0, ib[1] = 1, ib[2] = 2;
+
+	vector<vertex4> outlist;
+	Matrix Pm, Vm;
+	MatrxIdentity(tranMatrix);
+	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
+	MatrxIdentity(Vm);
+	Vector4 at(3, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	viewMatrix(Vm, at, view, up);
+
+	setMatrix(Pm);
+	IndeicesProcessPipeline(&outlist, ib, list, 1);
+	//wireFrame(outlist);
+	fillMesh(outlist);
+	draw("color1.ppm");
+}
+
+void pyramid()
+{
+	vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Yellow), c(-1.0f, 0.0f, 0.0f, 1, Blue), d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
+
+	indeiceBuffer* ib = 0;
+	vector<Vector4>list{ a,b,c,d,e };
+	applyForIndeices(&ib, 4 * 3);
+
+	ib[0] = 0, ib[1] = 1, ib[2] = 4;
+	ib[3] = 1, ib[4] = 2, ib[5] = 4;
+	ib[6] = 2, ib[7] = 3, ib[8] = 4;
+	ib[9] = 3, ib[10] = 0, ib[11] = 4;
+
+	vector<vertex4> outlist;
+	IndeicesProcessPipeline(&outlist, ib, list, 4);
+	//wireFrame(outlist);
+	fillMesh(outlist);
+
+	draw("color2.ppm");
+
+}
+
+
+void planetest() {
+	vertex4 a(6.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 6.0f, 1, Red), c(-6.0f, 0.0f, 0.0f, 1, Red), d(0.0f, 0.0f, -6.0f, 1, Red), e(0.0f, 0.0f, 0.0f, 1.0f, Red);
+	indeiceBuffer* ib = 0;
+	vector<Vector4>list{ a,b,c,d,e };
+	applyForIndeices(&ib, 4 * 3);
+	ib[0] = 0, ib[1] = 1, ib[2] = 4;
+	ib[3] = 1, ib[4] = 2, ib[5] = 4;
+	ib[6] = 2, ib[7] = 3, ib[8] = 4;
+	ib[9] = 3, ib[10] = 0, ib[11] = 4;
+
+	vector<vertex4> outlist;
+	IndeicesProcessPipeline(&outlist, ib, list, 4);
+	//wireFrame(outlist);
+	fillMesh(outlist);
+	//	release(ib);
+		//fillTriangle2(a, b, c);
+		//wareFrame(list);
+	draw("color3.ppm");
+}
+
 int main() {
 	memset(img, 255, sizeof(img));
 	//float cx = Width * 0.5f - 0.5f, cy = Height * 0.5f - 0.5f;
-	vertex4 a(600.0f, 0, 0.0f, 1), b(0.0f, 0.0f, 600.0f, 1), c(-600.0f, 0.0f,0.0f, 1),d(0.0f,0.0f,-600.0f,1),e(0.0f,600.0f,0.0f,1.0f);
+	vertex4 a(1.0f, 0, 0.0f, 1,Red), b(0.0f, 0.0f, 1.0f, 1,Yellow), c(-1.0f, 0.0f,0.0f, 1,Blue),d(0.0f,0.0f,-1.0f,1,Red	),e(0.0f,1.0f,0.0f,1.0f,White);
+	//
 	
+	/*vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.50f, 0.0f, 1, Red), c(0.0f, -1.0f, 0.0f, 1, Red);
+	vector<Vector4>list{ a,b,c };*/
 	indeiceBuffer* ib = 0;
 	vector<Vector4>list{a,b,c,d,e};
 	applyForIndeices(&ib, 4*3);
+	/*ib[0] = 0, ib[1] = 1, ib[2] = 2;*/
+	
 
 	ib[0] = 0, ib[1] = 1, ib[2] = 4;
 	ib[3] = 1, ib[4] = 2, ib[5] = 4;
@@ -188,9 +280,9 @@ int main() {
 
 	vector<vertex4> outlist;	
 	IndeicesProcessPipeline(&outlist, ib, list,4);
-	wireFrame(outlist);
-
-	release(ib);
+	//wireFrame(outlist);
+	fillMesh(outlist);
+//	release(ib);
 	//fillTriangle2(a, b, c);
 	//wareFrame(list);
 	draw("color3.ppm");
