@@ -12,7 +12,7 @@ const int Width =600, Height = 600;
 #define L 4
 #define B 8
 const int Lx = 0, Rx = Width, Ty = Height, By = 0;
-
+extern char img[(Width + 10)*(Height + 10) * 3];
 //---------------------------------
 //       向量声明				  |
 //---------------------------------
@@ -36,15 +36,19 @@ Color& operator *=(Color& a, float t);
 const Color Black(0, 0, 0);
 const Color White(255, 255, 255);
 const Color Red(255, 0, 0);
-const Color Yellow(0, 255, 0);
+const Color Green(0, 255, 0);
 const Color Blue(0, 0, 255);
 
 
 typedef
 struct Vector4 {
 	float _x, _y, _z,_w;
-	Color _c;
-	float rhw;
+
+	//vertex attribute
+	Color _c;float rhw;
+	float _tu, _tv;
+
+
 	Vector4() {
 		_x = 0.0f, _y = 0.0f, _z = 0.0f,_w = 0.0f;
 		_c = Black; rhw = _z;
@@ -68,8 +72,13 @@ float operator * (const Vector4& lsh, const Vector4& rsh );
 
 void VecNormalize(Vector4 & out,const Vector4& in);
 
+struct Texture {
+	int width,height;
+	char **tex;
 
+};
 
+void init_Texture(Texture * Tex);
 
 //---------------------------------
 //       矩阵声明				  |
@@ -156,6 +165,9 @@ void setPixel(int x, int y,Color color);
 
 void fillTriangle1(Vector4 v0,Vector4 v1,Vector4 v2);
 
+void setPixel(int x, int y, Color color);
+void setPixel(const vertex4& v);
+
 //void fillTriangle2(const Vector4& v0, const Vector4& v1,const Vector4& v2);
 //Vector4 barycentric(const Vector4& v0, const Vector4 &v1, const Vector4& v2, const Vector4& v);
 
@@ -182,3 +194,12 @@ void vertexInterp(vertex4 *out, const vertex4 &v0, const vertex4 &v1, float t);
 void IndeicesProcessPipeline(std::vector<vertex4>* outlist, const indeiceBuffer* ib, const std::vector<vertex4>&vb);
 
 void vertexProcessPipeline(std::vector<vertex4>* outlist, const std::vector<vertex4>& list);
+
+
+
+//---------------------------------
+//       文件处理	 			  |
+//---------------------------------
+void getTexture(const char* file);
+
+void draw(const char *name);

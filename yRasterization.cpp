@@ -1,6 +1,6 @@
 #include"yRasterization.h"
 
-
+char img[(Width + 10)*(Height + 10)*3];
 
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
 	 (*out)._w = 1.0f;
@@ -8,6 +8,25 @@ void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
 	 (*out)._y = a._z*b._x - a._x*b._z;
 	 (*out)._z = a._x*b._y - a._y*b._x;
 }
+
+//---------------------------------
+//			纹理设置			   |
+//---------------------------------
+
+void init_Texture(Texture * Tex) {
+	Tex->height = 256;
+	Tex->width = 256;
+	char texImg[256][256*3];
+	
+	for (int i = 0; i <= Tex->height; i++) {
+		for (int j = 0,k = 0; j <= Tex->width; j++,k+=3) {
+			if((i+j))
+		}
+	}
+	
+}
+
+
 
 //---------------------------------
 //			color 运算			   |
@@ -73,8 +92,22 @@ void bresenham(int x1,int y1, int x2,int y2) {
 }
 
 //---------------------------------
-//扫描线              光栅化三角形|
+//扫描线        光栅化三角形	  |
 //---------------------------------
+
+void setPixel(int x, int y, Color color) {
+	char *p = img + (y*Width + x)*3;
+
+	p[0] = color._r ,p[1] = color._g , p[2] =  color._b;
+
+}
+void setPixel(const vertex4& v) {
+	int y = v._y, x = v._x;
+	char *p = img + (y*Width + x) * 3;
+	p[0] = v._c._r, p[1] = v._c._g, p[2] = v._c._b;
+}
+
+
 void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line															//sort on the y axis
 	if (v0._y > v1._y)std::swap(v0, v1);
 	if (v0._y > v2._y)std::swap(v0, v2);
@@ -302,7 +335,7 @@ void MatrxIdentity(Matrix &out) {
 }
 
 
-Matrix& operator *= (Matrix &lsh,Matrix &rsh) {
+Matrix& operator *= (Matrix &lsh,const Matrix &rsh) {
 	lsh = lsh * rsh;
 	return lsh;
 
@@ -454,15 +487,15 @@ void viewMatrix(Matrix&out,const Vector4& at,const Vector4& view,const Vector4& 
 //正面为逆时针方向构成
 bool backCull(const vertex4& a,const vertex4& b,const vertex4& c) {
 	Vector4 u = b - a;
-	Vector4 v = a - c;
+    Vector4 v =  c-a;
 	
 	Vector4 zero(0, 0, 0, 0);
 	Vector4 normal;
-	VecCross(&normal, v, u);
-	Vector4 view = a - zero;
+	VecCross(&normal, u, v);
+	Vector4 view =  zero - a;
 	
 	float cosT = view * normal;
-	if (cosT <= 0) 
+	if (cosT >= 0) 
 		return false;
 	return true;
 }
@@ -473,5 +506,58 @@ bool backCull(const vertex4& a,const vertex4& b,const vertex4& c) {
 
 float interp(float a,float b,float t) {
 	return (b - a)*t + a;
+
+}
+
+//---------------------------------
+//      文件处理				  |
+//---------------------------------
+
+void draw(const char *name) {
+	std::ofstream fout(name,std::ofstream::out|std::ofstream::binary);
+	fout << "P6"<<std::endl << Width << " " << Height << std::endl<<"255"<<std::endl;
+	
+
+	for (int i = 0; i <= Height; i++) {
+		char *p = img + (i * Width) * 3;
+		for (int j = 0; j < Width; j++, p += 3) {
+
+			int k = p[0] << 16 | p[1] << 8 | p[2];
+
+			//fout << (int)p[0] << " " << (int)p[1] << " " << (int)p[2]<<"\n";
+			//fout << (int)p[0] << (int)p[1] << (int)p[2] << "\n";
+			fout.write(p, sizeof(char)*3);
+		}
+	}
+
+	/*unsigned char *p = img;
+	for (int i = Height - 1; i >= 0; i--) {
+		for (int j = 0; j < Width; j++) {
+			p += 3;
+			fout << (int)p[0] << " " << (int)p[1] << " " << (int)p[2] << "\n";
+		}
+	}*/
+	fout.close();
+
+}
+
+
+
+void getTexture(const char* file) {
+		
+	std::ifstream fin(file, std::ifstream::in | std::ifstream::binary);
+			
+	fin.seekg(0, fin.end);//文件内部指针定位至文件末尾
+	int length = fin.tellg();	//获取内部指针在当前位置的偏移量(文件的长度)
+	fin.seekg(0, fin.beg);	//重新定位至文件首
+	
+	char *buffer = new char[length];
+	fin.read(buffer, length);
+	
+
+
+	/*std::ofstream os("10.ppm", std::ofstream::out | std::ostream::binary);
+	os.write(buffer, length);
+	delete[] buffer;*/
 
 }

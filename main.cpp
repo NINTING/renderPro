@@ -1,46 +1,15 @@
 #include"yRasterization.h"
 #include<vector>
+#include<iostream>
+#include<cstdio>
 #define PI 3.14159265359f
 
 
 using namespace std;
 
 
-unsigned char img[(Width+10)*(Height+10)*3];
 
 
-void draw(const char *name) {
-	std::ofstream fout(name);
-	fout << "P3\n" << Width << " " << Height << "\n255\n";
-
-	for (int i = 0; i <=Height ; i++) {
-		unsigned char *p = img + (i * Width) * 3;
-		for (int j = 0; j < Width; j++,p+=3) {
-
-			fout << (int)p[0] << " " << (int)p[1] << " " << (int)p[2] << "\n";
-		}
-	}
-
-	/*unsigned char *p = img;
-	for (int i = Height - 1; i >= 0; i--) {
-		for (int j = 0; j < Width; j++) {
-			p += 3;
-			fout << (int)p[0] << " " << (int)p[1] << " " << (int)p[2] << "\n";
-		}
-	}*/
-	fout.close();
-
-}
-
-void setPixel(int x, int y,Color color) {
-	unsigned char *p = img + (y*Width + x) * 3;
-	p[0] = color._r, p[1] = color._g, p[2] = color._b;
-}
-void setPixel(const vertex4& v) {
-	int y = v._y,	x = v._x;
-	unsigned char *p = img + (y*Width + x) * 3;
-	p[0] = v._c._r, p[1] = v._c._g, p[2] = v._c._b;
-}
 
 void fillMesh(std::vector<Vector4>& list) {
 	for (int i = 0; i < list.size(); i+=3) {
@@ -117,6 +86,7 @@ void release(t * arr) {
 
 Matrix tranMatrix;
 
+//¾ØÕóÏà³ËË³Ðò--¡·ÊÀ½ç¾ØÕó*ÊÓ½Ç¾ØÕó*Í¶Ó°¾ØÕó*ÊÓ¿Ú¾ØÕó
 void setMatrix(const Matrix& m) {
 	tranMatrix *= m;
 }
@@ -125,16 +95,17 @@ void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, c
 	Matrix Pm, Vm;
 	size_t size = TriangleNum * 3;
 
-	PerspectiveMatrix(&Pm,PI*0.5,Width/Height,1,500);
-	//(*outlist).resize(size);
-	MatrxIdentity(Vm);
-	
-	//Vector4 at(0,0.0f,-5.0f, 1), view(0.0f, 0.0f,0.0f, 1), up(0,1, 0, 0);
-	Vector4 at(3, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	//PerspectiveMatrix(&Pm,PI*0.5,Width/Height,1,500);
+	////(*outlist).resize(size);
+	//MatrxIdentity(Vm);
+	//
+	////Vector4 at(0,0.0f,-5.0f, 1), view(0.0f, 0.0f,0.0f, 1), up(0,1, 0, 0);
+	//Vector4 at(0, 0.0f,-1.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
 
-	
-	viewMatrix(Vm, at, view, up);
-	tranMatrix = Vm * Pm;
+	//
+	//viewMatrix(Vm, at, view, up);
+	//
+	//tranMatrix = Vm*Pm;
 	Vector4 a, b, c;
 	for (int i = 0; i <size; i += 3) {
 		
@@ -143,7 +114,7 @@ void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, c
 		
 		MatrixApply(&b, vb[ib[i + 1]], tranMatrix);
 		b._c = vb[ib[i + 1]]._c; b.rhw = b._z;
-		
+
 		MatrixApply(&c, vb[ib[i + 2]],tranMatrix);
 		c._c = vb[ib[i + 2]]._c; c.rhw =c._z;
 	
@@ -194,113 +165,133 @@ void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, c
 
 void triangleTest() {
 	
-	vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.50f, 0.0f, 1, Red), c(0.0f, -1.0f, 0.0f, 1, Red);
+	vertex4 a(1.0f, 0, 5.0f, 1,Blue), b(0.0f, 1.0f, 0.0f, 1, Red), c(0.0f, -1.0f, 0.0f, 1, Green);
+	vertex4 d(-1.0f, 0, 5.0f, 1, Blue);
 	indeiceBuffer* ib = 0;
-	vector<Vector4>list{ a,b,c };
-	applyForIndeices(&ib, 3);
-
+	vector<Vector4>list{ a,b,c ,d};
+	applyForIndeices(&ib, 2*3);
 	ib[0] = 0, ib[1] = 1, ib[2] = 2;
-
+	ib[3] = 2, ib[4] = 1, ib[5] = 3;
 	vector<vertex4> outlist;
+
+
 	Matrix Pm, Vm;
 	MatrxIdentity(tranMatrix);
 	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
 	MatrxIdentity(Vm);
-	Vector4 at(3, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	Vector4 at(0, 0.0f, -2.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0, 0);
 	viewMatrix(Vm, at, view, up);
-
+	setMatrix(Vm);
 	setMatrix(Pm);
-	IndeicesProcessPipeline(&outlist, ib, list, 1);
+
+
+	IndeicesProcessPipeline(&outlist, ib, list, 2);
 	//wireFrame(outlist);
 	fillMesh(outlist);
+	release(ib);
 	draw("color1.ppm");
 }
 
 void pyramid()
 {
-	vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Yellow), c(-1.0f, 0.0f, 0.0f, 1, Blue), d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
+	vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Green), c(-1.0f, 0.0f, 0.0f, 1, Blue), d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
 
 	indeiceBuffer* ib = 0;
 	vector<Vector4>list{ a,b,c,d,e };
 	applyForIndeices(&ib, 4 * 3);
-
+	
+	//front
 	ib[0] = 0, ib[1] = 1, ib[2] = 4;
+
 	ib[3] = 1, ib[4] = 2, ib[5] = 4;
+	
 	ib[6] = 2, ib[7] = 3, ib[8] = 4;
+	
 	ib[9] = 3, ib[10] = 0, ib[11] = 4;
 
 	vector<vertex4> outlist;
+
+	Matrix Pm, Vm;
+	MatrxIdentity(tranMatrix);
+	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
+	MatrxIdentity(Vm);
+	
+	Vector4 at(4, 0.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	viewMatrix(Vm, at, view, up);
+	setMatrix(Vm);
+	setMatrix(Pm);
+	
 	IndeicesProcessPipeline(&outlist, ib, list, 4);
 	//wireFrame(outlist);
 	fillMesh(outlist);
-
+	release(ib);
 	draw("color2.ppm");
 
 }
 
 
-void planetest() {
-	vertex4 a(6.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 6.0f, 1, Red), c(-6.0f, 0.0f, 0.0f, 1, Red), d(0.0f, 0.0f, -6.0f, 1, Red), e(0.0f, 0.0f, 0.0f, 1.0f, Red);
-	indeiceBuffer* ib = 0;
-	vector<Vector4>list{ a,b,c,d,e };
-	applyForIndeices(&ib, 4 * 3);
-	ib[0] = 0, ib[1] = 1, ib[2] = 4;
-	ib[3] = 1, ib[4] = 2, ib[5] = 4;
-	ib[6] = 2, ib[7] = 3, ib[8] = 4;
-	ib[9] = 3, ib[10] = 0, ib[11] = 4;
+void Cubetest() {
+	vertex4 v1(-1.0f, 1.0, -1.0f, 1, Red), v2(1.0f, 1.0, -1.0f, 1, Red), v3(1.0f, -1.0, -1.0f, 1, Red), v4(-1.0f, -1.0f, -1.0f, 1, Red);
+	
+	vertex4    v5(-1.0f, 1.0, 1.0f, 1.0f, Blue), v6(1.0f, 1.0, 1.0f, 1, Blue), v7(1.0f, -1.0, 1.0f, 1, Blue), v8(-1.0f, -1.0, 1.0f, 1, Blue);
 
-	vector<vertex4> outlist;
-	IndeicesProcessPipeline(&outlist, ib, list, 4);
+	indeiceBuffer* ib = 0;
+	vector<Vector4>list{ v1,v2,v3,v4,v5,v6,v7,v8 };
+	applyForIndeices(&ib, 12 * 3);
+	//front
+	ib[0] = 0, ib[1] = 3, ib[2] = 1;
+	ib[3] = 3, ib[4] = 2, ib[5] = 1;
+
+	//left
+	ib[6] = 0, ib[7] = 4, ib[8] = 3;
+	ib[9] = 3, ib[10] = 4, ib[11] = 7;
+
+	//right
+	ib[12] = 2, ib[13] = 5, ib[14] = 1;
+	ib[15] = 2, ib[16] = 6, ib[17] = 5;
+
+	//back
+	ib[18] = 4, ib[19] = 5, ib[20] = 7;
+	ib[21] = 7, ib[22] = 5, ib[23] = 6;
+
+	//top
+	ib[24] = 0, ib[25] = 1, ib[26] = 4;
+	ib[27] = 1, ib[28] = 5, ib[29] = 4;
+
+	//bottom
+	ib[30] = 7, ib[31] = 6, ib[32] = 3;
+	ib[33] = 6, ib[34] = 2, ib[35] = 3;
+
+	Matrix Pm, Vm;
+	MatrxIdentity(tranMatrix);
+	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
+	MatrxIdentity(Vm);
+	Vector4 at(3.0, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	viewMatrix(Vm, at, view, up);
+	setMatrix(Vm);
+	setMatrix(Pm);
+
+
+	vector<vertex4> outlist;																													
+	IndeicesProcessPipeline(&outlist, ib, list, 12);
 	//wireFrame(outlist);
 	fillMesh(outlist);
-	//	release(ib);
+		release(ib);
 		//fillTriangle2(a, b, c);
 		//wareFrame(list);
-	draw("color3.ppm");
+	draw("color6.ppm");
 }
+
 
 int main() {
 	memset(img, 255, sizeof(img));
-	//float cx = Width * 0.5f - 0.5f, cy = Height * 0.5f - 0.5f;
-	vertex4 a(1.0f, 0, 0.0f, 1,Red), b(0.0f, 0.0f, 1.0f, 1,Yellow), c(-1.0f, 0.0f,0.0f, 1,Blue),d(0.0f,0.0f,-1.0f,1,Red	),e(0.0f,1.0f,0.0f,1.0f,White);
-	//
-	
-	/*vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.50f, 0.0f, 1, Red), c(0.0f, -1.0f, 0.0f, 1, Red);
-	vector<Vector4>list{ a,b,c };*/
-	indeiceBuffer* ib = 0;
-	vector<Vector4>list{a,b,c,d,e};
-	applyForIndeices(&ib, 4*3);
-	/*ib[0] = 0, ib[1] = 1, ib[2] = 2;*/
-	
 
-	ib[0] = 0, ib[1] = 1, ib[2] = 4;
-	ib[3] = 1, ib[4] = 2, ib[5] = 4;
-	ib[6] = 2, ib[7] = 3, ib[8] = 4;
-	ib[9] = 3, ib[10] = 0, ib[11] = 4;
-
-	vector<vertex4> outlist;	
-	IndeicesProcessPipeline(&outlist, ib, list,4);
-	//wireFrame(outlist);
-	fillMesh(outlist);
-//	release(ib);
-	//fillTriangle2(a, b, c);
-	//wareFrame(list);
-	draw("color3.ppm");
 
 	
+	Cubetest();
+	//getTexture("1.jpg");
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
