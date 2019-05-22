@@ -143,7 +143,7 @@ Vector4& operator *= (vertex4 &lrh, Matrix &rsh);
 
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b);
 
-void MatrxIdentity(Matrix &out);
+void MatrixIdentity(Matrix &out);
 
 //平移矩阵
 

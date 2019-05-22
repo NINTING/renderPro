@@ -84,28 +84,30 @@ void release(t * arr) {
 	arr = 0;
 }
 
-Matrix tranMatrix;
+Matrix tranMatrix; 
+Matrix ProjectMatr, ViewMatr, WorldMatr;
 
-//矩阵相乘顺序--》世界矩阵*视角矩阵*投影矩阵*视口矩阵
-void setMatrix(const Matrix& m) {
-	tranMatrix *= m;
+//矩阵相乘顺序--》世界矩阵*视角矩阵*投影矩阵
+
+#define TS_WORLD 1
+#define TS_VIEW 2
+#define TS_PROJECTION 4
+void setMatrix(int flag,Matrix* m) {
+	if(flag&TS_WORLD)
+		WorldMatr = *m;
+	if (flag&TS_VIEW)
+		ViewMatr = *m;
+	if (flag&TS_PROJECTION)
+		ProjectMatr = *m;
+}
+
+void getTranMatrix() {
+	tranMatrix = WorldMatr * ViewMatr * ProjectMatr;
 }
 
 void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, const vector<vertex4>&vb,int TriangleNum) {
-	Matrix Pm, Vm;
+	getTranMatrix();
 	size_t size = TriangleNum * 3;
-
-	//PerspectiveMatrix(&Pm,PI*0.5,Width/Height,1,500);
-	////(*outlist).resize(size);
-	//MatrxIdentity(Vm);
-	//
-	////Vector4 at(0,0.0f,-5.0f, 1), view(0.0f, 0.0f,0.0f, 1), up(0,1, 0, 0);
-	//Vector4 at(0, 0.0f,-1.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
-
-	//
-	//viewMatrix(Vm, at, view, up);
-	//
-	//tranMatrix = Vm*Pm;
 	Vector4 a, b, c;
 	for (int i = 0; i <size; i += 3) {
 		
@@ -133,15 +135,6 @@ void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, c
 	}
 
 
-
-	//for (int i = 0; i < size; i += 3) {
-	//	MatrixApply(&(*outlist)[i], vb[ib[i]], Vm);
-	//	MatrixApply(&(*outlist)[i], (*outlist)[i], Pm);
-	//	MatrixApply(&(*outlist)[i + 1], vb[ib[i + 1]],Vm);
-	//	MatrixApply(&(*outlist)[i + 1], (*outlist)[i + 1], Pm);
-	//	MatrixApply(&(*outlist)[i + 2], vb[ib[i + 2]], Vm);
-	//	MatrixApply(&(*outlist)[i + 2], (*outlist)[i + 2], Pm);
-	//}
 	size = outlist->size();
 	for (int i = 0; i < size; i++) {
 		toScreen(&(*outlist)[i]);
@@ -298,21 +291,26 @@ void textureCube() {
 	release(ib);
 	//fillTriangle2(a, b, c);
 	//wareFrame(list);
-	draw("color1.ppm");
+	
 }
 
 void setup() {
-	MatrxIdentity(tranMatrix);
+	MatrixIdentity(tranMatrix);
 	
-	Matrix Pm, Vm,Tm;
-	MatrxIdentity(Vm);
-	MatrixTranslation(Tm, 3.0f, 0.0f, 0.0f);
+	Matrix Vm, Pm;
+	MatrixIdentity(Vm);
+	
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(3.0f, 3.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	Vector4 at(0.0f, 0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
 	viewMatrix(Vm, at, view, up);
-	setMatrix(Tm);
-	setMatrix(Vm);
-	setMatrix(Pm);
+	setMatrix(TS_VIEW,&Vm);
+	setMatrix(TS_PROJECTION,&Pm);
+}
+
+void init() {
+	MatrixIdentity(ProjectMatr);
+	MatrixIdentity(ViewMatr);
+	MatrixIdentity(WorldMatr);
 }
 
 int main() {
@@ -326,9 +324,11 @@ int main() {
 	//pyramid();
 	setup();
 	textureCube();
-
-
-
+	Matrix Tm;
+	MatrixTranslation(Tm, 3.0f, 0.0f, 0.0f);
+	setMatrix(TS_WORLD, &Tm);
+	textureCube();
+	draw("color1.ppm");
 	//triangleTest();
 	//getTexture("1.jpg");
 

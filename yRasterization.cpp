@@ -364,7 +364,7 @@ Matrix ::Matrix(float x11, float x12, float x13, float x14,
 
 
 
-void MatrxIdentity(Matrix &out) {
+void MatrixIdentity(Matrix &out) {
 	out(0, 0) = 1.0f;
 	out(1, 1) = 1.0f;
 	out(2, 2) = 1.0f;
