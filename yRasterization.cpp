@@ -514,7 +514,15 @@ void viewMatrix(Matrix&out,const Vector4& at,const Vector4& view,const Vector4& 
 
 }
 
-
+void MatrixTranslation(Matrix& out, float x, float y, float z) {
+	out(0, 0) = 1.0f;
+	out(1, 1) = 1.0f;
+	out(2, 2) = 1.0f;
+	out(3, 3) = 1.0f;
+	out(3, 0) = x;
+	out(3, 1) = y;
+	out(3, 2) = z;
+}
 
 
 //---------------------------------

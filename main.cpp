@@ -180,17 +180,6 @@ void triangleTest() {
 	ib[3] = 2, ib[4] = 1, ib[5] = 3;
 	vector<vertex4> outlist;
 
-
-	Matrix Pm, Vm;
-	MatrxIdentity(tranMatrix);
-	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
-	MatrxIdentity(Vm);
-	Vector4 at(0, 0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0, 0);
-	viewMatrix(Vm, at, view, up);
-	setMatrix(Vm);
-	setMatrix(Pm);
-
-
 	IndeicesProcessPipeline(&outlist, ib, list, 2);
 	//wireFrame(outlist);
 	fillMesh(outlist);
@@ -216,16 +205,6 @@ void pyramid()
 	ib[9] = 3, ib[10] = 0, ib[11] = 4;
 
 	vector<vertex4> outlist;
-
-	Matrix Pm, Vm;
-	MatrxIdentity(tranMatrix);
-	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
-	MatrxIdentity(Vm);
-	
-	Vector4 at(3, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
-	viewMatrix(Vm, at, view, up);
-	setMatrix(Vm);
-	setMatrix(Pm);
 	
 	IndeicesProcessPipeline(&outlist, ib, list, 4);
 	//wireFrame(outlist);
@@ -267,15 +246,6 @@ void Cubetest() {
 	//bottom
 	ib[30] = 7, ib[31] = 6, ib[32] = 3;
 	ib[33] = 6, ib[34] = 2, ib[35] = 3;
-
-	Matrix Pm, Vm;
-	MatrxIdentity(tranMatrix);
-	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
-	MatrxIdentity(Vm);
-	Vector4 at(3.0, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
-	viewMatrix(Vm, at, view, up);
-	setMatrix(Vm);
-	setMatrix(Pm);
 
 
 	vector<vertex4> outlist;																													
@@ -320,16 +290,7 @@ void textureCube() {
 	ib[30] = 7, ib[31] = 6, ib[32] = 3;
 	ib[33] = 6, ib[34] = 2, ib[35] = 3;
 
-	Matrix Pm, Vm;
-	MatrxIdentity(tranMatrix);
-	PerspectiveMatrix(&Pm, PI*0.5, Width / Height, 1, 500);
-	MatrxIdentity(Vm);
-	Vector4 at(0.0, 3.0f, 0.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 0, 1, 0);
-	viewMatrix(Vm, at, view, up);
-	setMatrix(Vm);
-	setMatrix(Pm);
-
-
+	
 	vector<vertex4> outlist;
 	IndeicesProcessPipeline(&outlist, ib, list, 12);
 	//wireFrame(outlist);
@@ -337,12 +298,25 @@ void textureCube() {
 	release(ib);
 	//fillTriangle2(a, b, c);
 	//wareFrame(list);
-	draw("color9.ppm");
+	draw("color1.ppm");
 }
 
+void setup() {
+	MatrxIdentity(tranMatrix);
+	
+	Matrix Pm, Vm,Tm;
+	MatrxIdentity(Vm);
+	MatrixTranslation(Tm, 3.0f, 0.0f, 0.0f);
+	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
+	Vector4 at(3.0f, 3.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	viewMatrix(Vm, at, view, up);
+	setMatrix(Tm);
+	setMatrix(Vm);
+	setMatrix(Pm);
+}
 
 int main() {
-	memset(img, 255, sizeof(img));
+	memset(img,0, sizeof(img));
 	Texture tex; 
 	init_Texture(&tex);
 	//RsetFVF(FVFtexture);
@@ -350,6 +324,7 @@ int main() {
 	RsetTex(&tex);
 	//Cubetest();
 	//pyramid();
+	setup();
 	textureCube();
 
 

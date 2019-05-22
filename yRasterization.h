@@ -145,6 +145,11 @@ void VecCross(Vector4 *out,const Vector4& a, const Vector4& b);
 
 void MatrxIdentity(Matrix &out);
 
+//平移矩阵
+
+void MatrixTranslation(Matrix& out,float x,float y,float z);
+
+
 //旋转矩阵
 void RotationAxis(Matrix&out, const Vector4& axis, float theta);
 void RotationAxisX(Matrix& out, float theta);
