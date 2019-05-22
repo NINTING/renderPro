@@ -13,21 +13,47 @@ void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
 //			纹理设置			   |
 //---------------------------------
 
+int Presentfvf;		//当前的顶点格式
+Texture *PresentTex;	//当前的纹理
+void getTexPixel(const Texture *Texobj ,Color* c,float x,float y) {
+	x *= Texobj->width - 1;
+	y *= Texobj->height - 1;
+	int row= y + 0.5, col = x + 0.5;
+	char *p = Texobj->tex + (row *Texobj->width  + col)*3;
+	c->_r = p[0], c->_g = p[1], c->_b = p[2];
+}
+
+void Texture_set(Texture *texobj, void *texImg,int w,int h,int pitch) {
+	texobj->width = w;
+	texobj->height = h;
+	 
+	texobj->tex = (char *)texImg;
+
+}
+
 void init_Texture(Texture * Tex) {
-	Tex->height = 256;
-	Tex->width = 256;
-	char texImg[256][256*3];
-	
-	for (int i = 0; i <= Tex->height; i++) {
-		for (int j = 0,k = 0; j <= Tex->width; j++,k+=3) {
-			if((i+j))
+	static char texImg[256][256 * 3];
+	int texW = 256, texH = 256;
+	for (int i = 0; i <= 256; i++) {
+		for (int j = 0, k = 0; j <= 256; j++, k += 3) {
+			if ((i / 32 + j / 32) & 1)
+				texImg[i][k] = 0xff, texImg[i][k + 1] = 0xff, texImg[i][k + 2] = 0xff;
+			else
+				texImg[i][k] = 0x3f, texImg[i][k + 1] = 0xbc, texImg[i][k + 2] = 0xef;
 		}
 	}
+	Texture_set(Tex,texImg,texW,texH,256*3);
+	
 	
 }
 
-
-
+void RsetFVF(int FvF) {
+	Presentfvf = 0;
+	Presentfvf |= FvF;
+}
+void RsetTex(Texture *tex) {
+	PresentTex = tex;
+}
 //---------------------------------
 //			color 运算			   |
 //---------------------------------
@@ -114,56 +140,66 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line										
 	if (v1._y > v2._y) std::swap(v1, v2);
 
 	//scan flat-top triangel
-	for (int y = v0._y; y < v1._y; y++) {
-		float d1 = (float)(y - v0._y) / (float)(v1._y - v0._y + 1);
-		float d2 = (float)(y - v0._y) / (float)(v2._y - v0._y + 1);
-		
+	for (int y = v0._y; y <= v2._y; y++) {
+		//上下插值
+		float d1,d2;
+
+		//左右端点和插值
 		vertex4 lv, rv;
+		d2 = (float)(y - v0._y) / (float)(v2._y - v0._y + 1);
+		vertexInterp(&rv, v0, v2, d2);
+
+		if (y < v1._y) {
+			d1 = (float)(y - v0._y) / (float)(v1._y - v0._y + 1);
+			vertexInterp(&lv, v0, v1, d1);
+		}
+		else {
+			d1 = (float)(y - v1._y) / (float)(v2._y - v1._y + 1);
+			vertexInterp(&lv, v1, v2, d1);
+		}
+		
 		lv._y = rv._y = y;
-		vertexInterp(&lv, v0, v1,d1);
-		vertexInterp(&rv, v0, v2,d2);
 		if (lv._x > rv._x)std::swap(lv, rv);
 		//lineclip(lv, rv);
-		float bstep = (rv._c._b - lv._c._b) / (rv._x - lv._x);
-		float gstep = (rv._c._g - lv._c._g) / (rv._x - lv._x);
-		float rstep = (rv._c._r - lv._c._r) / (rv._x - lv._x);
-		float zstep = (rv.rhw - lv.rhw) / (rv._x - lv._x);
+		
+		float overSubx = 1 / (rv._x - lv._x);
+		if (rv._x - lv._x == 0)overSubx = 0.0f;
 
-		float overb, overg, overr, overz;
+		float zstep = (rv.rhw - lv.rhw) *overSubx;
+		float bstep = 0;
+		float gstep = 0;
+		float rstep = 0;
+		float ustep = 0;
+		float vstep = 0;
+		
+		if (Presentfvf & FVFcolor) {
+			//颜色插值
+			bstep = (rv._c._b - lv._c._b)*overSubx;
+			gstep = (rv._c._g - lv._c._g)*overSubx;
+			rstep = (rv._c._r - lv._c._r)*overSubx;
+		}
+		else if (Presentfvf&FVFtexture)
+		{
+			ustep = (rv._tu - lv._tu)*overSubx;
+			vstep = (rv._tv - lv._tv)*overSubx;
+
+			//getTexPixel()
+		}
+		float boverz, goverz, roverz, overz,uoverz,voverz;
 		int x;
-		for (x = lv._x,overb = lv._c._b, overg = lv._c._g, overr = lv._c._r,overz = lv.rhw; x <= rv._x;
-			x++,overb+=bstep,overg+=gstep,overr+=rstep,overz+=zstep) {
-			Color c(overr/overz, overg/overz, overb/overz);
+		for (x = lv._x,boverz = lv._c._b, goverz = lv._c._g, roverz = lv._c._r,overz = lv.rhw,uoverz = lv._tu,voverz = lv._tv;
+			x <= rv._x;
+			x++,boverz+=bstep,goverz+=gstep,roverz+=rstep,overz+=zstep,uoverz+=ustep,voverz+=vstep) {
+			Color c;
+			if(Presentfvf & FVFcolor)
+				c._r = roverz/overz,c._g = goverz/overz,c._b =  boverz/overz;
+			if (Presentfvf&FVFtexture) 
+				getTexPixel(PresentTex,&c,uoverz/overz,voverz/overz);
+			
 			setPixel(x,y,c);
 		}
 
 	}
-	//scan flat triangle
-	for (int y = v1._y; y <= v2._y; y++) {
-
-		float d1 = (float)(y - v0._y) / (float)(v2._y - v0._y + 1);
-		float d2 = (float)(y - v1._y) / (float)(v2._y - v1._y + 1);
-
-		vertex4 lv, rv;
-		lv._y = rv._y = y;
-		vertexInterp(&lv, v0, v2, d1);
-		vertexInterp(&rv, v1, v2, d2);
-		if (lv._x > rv._x)std::swap(lv, rv);
-		//lineclip(lv, rv);
-		float bstep = (rv._c._b - lv._c._b) / (rv._x - lv._x);
-		float gstep = (rv._c._g - lv._c._g) / (rv._x - lv._x);
-		float rstep = (rv._c._r - lv._c._r) / (rv._x - lv._x);
-		float zstep = (rv.rhw - lv.rhw) / (rv._x - lv._x);
-
-		float overb, overg, overr, overz;
-		int x;
-		for (x = lv._x, overb = lv._c._b, overg = lv._c._g, overr = lv._c._r, overz = lv.rhw; x <= rv._x;
-			x++, overb += bstep, overg += gstep, overr += rstep, overz += zstep) {
-			Color c(overr / overz, overg / overz, overb / overz);
-			setPixel(x, y, c);
-		}
-	}
-
 
 }
 
@@ -173,11 +209,12 @@ void vertexInterp(vertex4 *out,const vertex4 &v0, const vertex4 &v1,float t) {
 	float BoneOverZ = 1.0 / v0.rhw;
 	float ToneOverZ = 1.0 / v1.rhw;	
 
-	out->rhw = interp(BoneOverZ, ToneOverZ, t);
+	out->rhw   = interp(BoneOverZ, ToneOverZ, t);
 	out->_c._b = interp(v0._c._b*BoneOverZ, v1._c._b*ToneOverZ, t);
 	out->_c._r = interp(v0._c._r*BoneOverZ, v1._c._r*ToneOverZ, t);
 	out->_c._g = interp(v0._c._g*BoneOverZ, v1._c._g*ToneOverZ, t);
-
+	out->_tu   = interp(v0._tu*BoneOverZ, v1._tu*ToneOverZ, t);
+	out->_tv   = interp(v0._tv*BoneOverZ, v1._tv*ToneOverZ, t);
 }
 
 ////---------------------------------
@@ -270,6 +307,7 @@ void lineclip(vertex4 &a, vertex4 &b) {
 //---------------------------------
 //       向量相关函数			  |
 //---------------------------------
+
 
 Vector4 operator - (const Vector4& lsh, const Vector4& rsh) {
 	return Vector4(lsh._x - rsh._x, lsh._y - rsh._y, lsh._z - rsh._z,0);
@@ -520,23 +558,11 @@ void draw(const char *name) {
 
 	for (int i = 0; i <= Height; i++) {
 		char *p = img + (i * Width) * 3;
-		for (int j = 0; j < Width; j++, p += 3) {
+//		for (int j = 0; j < Width; j++) {
 
-			int k = p[0] << 16 | p[1] << 8 | p[2];
-
-			//fout << (int)p[0] << " " << (int)p[1] << " " << (int)p[2]<<"\n";
-			//fout << (int)p[0] << (int)p[1] << (int)p[2] << "\n";
-			fout.write(p, sizeof(char)*3);
-		}
+			fout.write(p, Width*3);
+	//	}
 	}
-
-	/*unsigned char *p = img;
-	for (int i = Height - 1; i >= 0; i--) {
-		for (int j = 0; j < Width; j++) {
-			p += 3;
-			fout << (int)p[0] << " " << (int)p[1] << " " << (int)p[2] << "\n";
-		}
-	}*/
 	fout.close();
 
 }

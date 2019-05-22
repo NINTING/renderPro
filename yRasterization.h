@@ -13,11 +13,17 @@ const int Width =600, Height = 600;
 #define B 8
 const int Lx = 0, Rx = Width, Ty = Height, By = 0;
 extern char img[(Width + 10)*(Height + 10) * 3];
-//---------------------------------
-//       向量声明				  |
-//---------------------------------
+
+
+//顶点格式
+#define FVFcolor 1
+#define FVFtexture 2
+#define FVFwireframe 4
 
 #define indeiceBuffer int
+//---------------------------------
+//      颜色声明				  |
+//---------------------------------
 
 struct Color
 {
@@ -38,25 +44,29 @@ const Color White(255, 255, 255);
 const Color Red(255, 0, 0);
 const Color Green(0, 255, 0);
 const Color Blue(0, 0, 255);
-
+//---------------------------------
+//       向量声明				  |
+//---------------------------------
 
 typedef
 struct Vector4 {
 	float _x, _y, _z,_w;
 
 	//vertex attribute
-	Color _c;float rhw;
+	Color _c;
+	float rhw;		// 1/z
 	float _tu, _tv;
 
 
 	Vector4() {
 		_x = 0.0f, _y = 0.0f, _z = 0.0f,_w = 0.0f;
-		_c = Black; rhw = _z;
+		_c =White; rhw = _z;
 	};
 	
-	Vector4(float x, float y, float z, float w) :_x(x), _y(y), _z(z), _w(w) { _c = Black; rhw = _z; };
+	Vector4(float x, float y, float z, float w) :_x(x), _y(y), _z(z), _w(w) { _c =White; rhw = _z; };
 	Vector4(float x, float y, float z, float w, Color c) :_x(x), _y(y), _z(z), _w(w), _c(c) { rhw = _z; };
-	Vector4(float x, float y, float z, float w, Color c,float rhw) :_x(x), _y(y), _z(z), _w(w), _c(c),rhw(rhw) { };
+	Vector4(float x, float y, float z, float w, Color c, float u, float v) :_x(x), _y(y), _z(z), _w(w), _c(c), _tu(u), _tv(v) { };
+	Vector4(float x, float y, float z, float w,float u,float v) :_x(x), _y(y), _z(z), _w(w),_tu(u),_tv(v) { _c = White; rhw = _z; };
 
 }vertex4, Vector4;
 
@@ -72,13 +82,36 @@ float operator * (const Vector4& lsh, const Vector4& rsh );
 
 void VecNormalize(Vector4 & out,const Vector4& in);
 
-struct Texture {
-	int width,height;
-	char **tex;
+//---------------------------------
+//       材质声明				  |
+//---------------------------------
+
+struct Matreial {
+	Color _Ambient;		//环境光
+	Color _Specular;		//镜面光
+	Color _Diffuse;		//漫反射
+	float _power;		//控制镜面反射的光斑
+	//Color emition
+	Matreial(Color Ambient,Color Specular,Color Diffuse,float power):
+		_Ambient(Ambient),_Specular(Specular),_Diffuse(Diffuse),_power(power){}
 
 };
 
-void init_Texture(Texture * Tex);
+void setMatreial(Matreial *Mtr);
+
+//---------------------------------
+//       光照相关				  |
+//---------------------------------
+
+struct Light {
+	Color _Ambient;		//环境光
+	Color _Specular;		//镜面光
+	Color _Diffuse;		//漫反射
+
+};
+
+void getTrinormal(Vector4 *normal,vertex4 a,vertex4 b,vertex4 c);
+
 
 //---------------------------------
 //       矩阵声明				  |
@@ -203,3 +236,22 @@ void vertexProcessPipeline(std::vector<vertex4>* outlist, const std::vector<vert
 void getTexture(const char* file);
 
 void draw(const char *name);
+
+
+//---------------------------------
+//			纹理设置			   |
+//---------------------------------
+
+struct Texture {
+	int width, height;
+	char *tex;
+
+};
+void getTexPixel(const Texture *Texobj, Color* c, int x, int y);
+
+void Texture_set(Texture *texobj, void *texImg, int w, int h, int pitch);
+
+void RsetFVF(int FvF);
+void RsetTex(Texture *tex);
+
+void init_Texture(Texture * Tex);
