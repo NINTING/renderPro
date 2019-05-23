@@ -258,6 +258,7 @@ void textureCube() {
 
 	indeiceBuffer* ib = 0;
 	vector<Vector4>list{ v0,v1,v2,v3,v4,v5,v6,v7 };
+	
 	applyForIndeices(&ib, 12 * 3);
 	//front
 	ib[0] = 0, ib[1] = 3, ib[2] = 1;
@@ -295,16 +296,17 @@ void textureCube() {
 }
 
 void setup() {
-	MatrixIdentity(tranMatrix);
+	
 	
 	Matrix Vm, Pm;
-	MatrixIdentity(Vm);
+
 	
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(0.0f, 0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	Vector4 at(0.0f,0.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
 	viewMatrix(Vm, at, view, up);
 	setMatrix(TS_VIEW,&Vm);
 	setMatrix(TS_PROJECTION,&Pm);
+
 }
 
 void init() {
@@ -314,20 +316,23 @@ void init() {
 }
 
 int main() {
-	memset(img,0, sizeof(img));
+	init();
+	memset(img,255, sizeof(img));
 	Texture tex; 
-	init_Texture(&tex);
+	init_Texture(&tex,255,255);
 	//RsetFVF(FVFtexture);
 	RsetFVF(FVFtexture);
 	RsetTex(&tex);
-	//Cubetest();
+	
 	//pyramid();
+	
 	setup();
+	//Cubetest();
 	textureCube();
-	Matrix Tm;
+	/*Matrix Tm;
 	MatrixTranslation(Tm, 3.0f, 0.0f, 0.0f);
 	setMatrix(TS_WORLD, &Tm);
-	textureCube();
+	textureCube();*/
 	draw("color1.ppm");
 	//triangleTest();
 	//getTexture("1.jpg");

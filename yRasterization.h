@@ -27,9 +27,9 @@ extern char img[(Width + 10)*(Height + 10) * 3];
 
 struct Color
 {
-	unsigned char _r, _g, _b;
+	float _r, _g, _b;
 	Color() = default;
-	Color(unsigned char r, unsigned char g, unsigned char b) :_r(r), _g(g), _b(b) {}
+	Color(float r, float g, float b) :_r(r), _g(g), _b(b) {}
 };
 Color operator +(const Color& a, const Color&b);
 Color& operator +=(Color& a, const Color&b);
@@ -40,10 +40,10 @@ Color& operator *=(Color& a, float t);
 
 
 const Color Black(0, 0, 0);
-const Color White(255, 255, 255);
-const Color Red(255, 0, 0);
-const Color Green(0, 255, 0);
-const Color Blue(0, 0, 255);
+const Color White(1, 1, 1);
+const Color Red(1, 0, 0);
+const Color Green(0, 1, 0);
+const Color Blue(0, 0, 1);
 //---------------------------------
 //       向量声明				  |
 //---------------------------------
@@ -144,7 +144,7 @@ Vector4& operator *= (vertex4 &lrh, Matrix &rsh);
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b);
 
 void MatrixIdentity(Matrix &out);
-
+void MatrixZero(Matrix &out);
 //平移矩阵
 
 void MatrixTranslation(Matrix& out,float x,float y,float z);
@@ -249,14 +249,16 @@ void draw(const char *name);
 
 struct Texture {
 	int width, height;
-	char *tex;
-
+	float *tex;
+	~Texture() {
+		delete[]tex;
+	}
 };
-void getTexPixel(const Texture *Texobj, Color* c, int x, int y);
+void getTexPixel(const Texture *Texobj, Color* c, float x, float y);
 
 void Texture_set(Texture *texobj, void *texImg, int w, int h, int pitch);
 
 void RsetFVF(int FvF);
 void RsetTex(Texture *tex);
 
-void init_Texture(Texture * Tex);
+void init_Texture(Texture* texobj, int w, int h);

@@ -19,32 +19,32 @@ void getTexPixel(const Texture *Texobj ,Color* c,float x,float y) {
 	x *= Texobj->width - 1;
 	y *= Texobj->height - 1;
 	int row= y + 0.5, col = x + 0.5;
-	char *p = Texobj->tex + (row *Texobj->width  + col)*3;
+	if (row >= Texobj->height) row = Texobj->height - 1;
+	if (row < 0)row = 0;
+	if (col >= Texobj->width)  col = Texobj->width - 1;
+	if (col < 0)col = 0;
+	float *p = Texobj->tex + (row *Texobj->width  + col)*3;
 	c->_r = p[0], c->_g = p[1], c->_b = p[2];
 }
 
-void Texture_set(Texture *texobj, void *texImg,int w,int h,int pitch) {
-	texobj->width = w;
+
+
+void init_Texture(Texture * texobj, int w, int h) {
+	texobj->width = w;	
 	texobj->height = h;
-	 
-	texobj->tex = (char *)texImg;
-
-}
-
-void init_Texture(Texture * Tex) {
-	static char texImg[256][256 * 3];
-	int texW = 256, texH = 256;
-	for (int i = 0; i <= 256; i++) {
-		for (int j = 0, k = 0; j <= 256; j++, k += 3) {
+	texobj->tex = new float[w * h * 3];
+	for (int i = 0; i < h; i++) {
+		float* p = texobj->tex + i * w * 3;
+		for (int j = 0; j < w; j++, p += 3) {
 			if ((i / 32 + j / 32) & 1)
-				texImg[i][k] = 0xff, texImg[i][k + 1] = 0xff, texImg[i][k + 2] = 0xff;
+				p[0] =1, p[1] = 1, p[2] = 1;
 			else
-				texImg[i][k] = 0x3f, texImg[i][k + 1] = 0xbc, texImg[i][k + 2] = 0xef;
+				p[0] = (float)0x3f/255.0f, p[1] = (float)0xbc/ 255.0f, p[2] = (float)0xef/255.0f;
+			
 		}
 	}
-	Texture_set(Tex,texImg,texW,texH,256*3);
-	
-	
+
+
 }
 
 void RsetFVF(int FvF) {
@@ -123,8 +123,8 @@ void bresenham(int x1,int y1, int x2,int y2) {
 
 void setPixel(int x, int y, Color color) {
 	char *p = img + (y*Width + x)*3;
-
-	p[0] = color._r ,p[1] = color._g , p[2] =  color._b;
+	
+	p[0] = (char)(color._r*255+0.5) ,p[1] = (char)(color._g*255+0.5) , p[2] = (char)(color._b*255+0.5);
 
 }
 void setPixel(const vertex4& v) {
@@ -140,7 +140,7 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line										
 	if (v1._y > v2._y) std::swap(v1, v2);
 
 	//scan flat-top triangel
-	for (int y = v0._y; y <= v2._y; y++) {
+	for (int y = v0._y+0.5; y <= v2._y; y++) {
 		//ÉÏÏÂ²åÖµ
 		float d1,d2;
 
@@ -190,11 +190,13 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line										
 		for (x = lv._x,boverz = lv._c._b, goverz = lv._c._g, roverz = lv._c._r,overz = lv.rhw,uoverz = lv._tu,voverz = lv._tv;
 			x <= rv._x;
 			x++,boverz+=bstep,goverz+=gstep,roverz+=rstep,overz+=zstep,uoverz+=ustep,voverz+=vstep) {
-			Color c;
+			Color c(1,1,1);
+			float zz = 1.0f / overz;
+			
 			if(Presentfvf & FVFcolor)
-				c._r = roverz/overz,c._g = goverz/overz,c._b =  boverz/overz;
+				c._r = roverz*zz,c._g = goverz*zz,c._b =  boverz*zz;
 			if (Presentfvf&FVFtexture) 
-				getTexPixel(PresentTex,&c,uoverz/overz,voverz/overz);
+				getTexPixel(PresentTex,&c,uoverz*zz,voverz*zz);
 			
 			setPixel(x,y,c);
 		}
@@ -365,13 +367,34 @@ Matrix ::Matrix(float x11, float x12, float x13, float x14,
 
 
 void MatrixIdentity(Matrix &out) {
+	MatrixZero(out);
 	out(0, 0) = 1.0f;
 	out(1, 1) = 1.0f;
 	out(2, 2) = 1.0f;
 	out(3, 3) = 1.0f;
 
 }
+void MatrixZero(Matrix& out) {
+	out(0, 0) = 0.0f;
+	out(0, 1) = 0.0f;
+	out(0, 2) = 0.0f;
+	out(0, 3) = 0.0f;
+	
+	out(1, 0) = 0.0f;
+	out(1, 1) = 0.0f;
+	out(1, 2) = 0.0f;
+	out(1, 3) = 0.0f;
+	
+	out(2, 0) = 0.0f;
+	out(2, 1) = 0.0f;
+	out(2, 2) = 0.0f;
+	out(2, 3) = 0.0f;
 
+	out(3, 0) = 0.0f;
+	out(3, 1) = 0.0f;
+	out(3, 2) = 0.0f;
+	out(3, 3) = 0.0f;
+}
 
 Matrix& operator *= (Matrix &lsh,const Matrix &rsh) {
 	lsh = lsh * rsh;
