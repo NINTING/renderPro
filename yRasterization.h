@@ -23,6 +23,9 @@ extern char img[(Width + 10)*(Height + 10) * 3];
 
 
 #define indeiceBuffer int
+
+
+
 //---------------------------------
 //      颜色声明				  |
 //---------------------------------
@@ -35,10 +38,13 @@ struct Color
 };
 Color operator +(const Color& a, const Color&b);
 Color& operator +=(Color& a, const Color&b);
-Color operator *(const Color& a, const Color&b);
-Color& operator *=(Color& a, const Color&b);
+Color operator /(const Color& a, const Color&b);
+Color& operator /=(Color& a, const Color&b);
 Color operator *(const Color& a, float t);
+Color operator *(float t,const Color& a);
 Color& operator *=(Color& a, float t);
+Color operator *(const Color& a,const Color &b);
+Color& operator *=(Color& a, const Color b );
 
 
 const Color Black(0, 0, 0);
@@ -49,11 +55,16 @@ const Color Blue(0, 0, 1);
 //---------------------------------
 //       向量声明				  |
 //---------------------------------
+
+#define TS_WORLD 1
+#define TS_VIEW 2
+#define TS_PROJECTION 4
+
 typedef
 struct Vector4
 {
 	float _x, _y, _z,_w;
-	Vector4() {};
+	Vector4() = default;
 	Vector4(float x, float y, float z,float w) :_x(x), _y(y), _z(z),_w(w) {};
 
 }Vertex4, Vector4;
@@ -67,8 +78,9 @@ struct VertexAtrr {
 	Color _c;
 	float rhw;		// 1/z
 	float _tu, _tv;
-
-	VertexAtrr(): _v(Vector4(0, 0, 0, 0)){};
+	float nx, ny, nz;
+	VertexAtrr() = default;
+	//VertexAtrr(): _v(Vector4(0, 0, 0, 0)){};
 	
 	VertexAtrr(float x, float y, float z, float w) :_v(Vector4(x,y,z,w)) { _c = White; };
 	VertexAtrr(float x, float y, float z, float w, Color c) :_v(Vector4(x, y, z, w)), _c(c) { };
@@ -78,7 +90,7 @@ struct VertexAtrr {
 };
 
 Vector4 operator - (const Vector4& lsh, const Vector4& rsh);
-
+Vector4 operator - (const Vector4& rsh);
 Vector4& operator -= (Vector4& lsh, const Vector4& rsh);
 
 Vector4 operator + (const Vector4& lsh, const Vector4& rsh);
@@ -131,6 +143,8 @@ void getNormal(Triangle * tri);
 //---------------------------------
 //       光照相关				  |
 //---------------------------------
+
+
 enum LightType
 {
 	LightSpot = 1,
@@ -152,14 +166,19 @@ struct Light {
 	float range;
 };
 
+Light* Lightarr();
+void setLight(int num,Light*light);
+Light* getLight(int index);
+void releaseLight();
+
 Light initDirectionalLight(const Vector4& direction,const Color &color);
 Light initPointLight(Vector4 direction, Vector4);
 Light initSpotLight(Vector4 direction, Vector4);
 
 
-void getSpecuC(Color *out,const Color& Mspecular,const Light &Light,const Vector4& view,const Vector4 &normal);
-void getAmbientC(Color *out, const Color& Mambient, const Light &Lambient);
-void getdiffuseC(Color *out, const Color& Mspecular, const Light &Lspecular, const Vector4 &normal);
+void getSpecuC(Color *out, const Matreial& M,const Light &Light,const Vector4& view,const Vector4 &normal);
+void getAmbientC(Color *out, const Matreial& M, const Light &Light);
+void getdiffuseC(Color *out, const Matreial& M, const Light &Light, const Vector4 &normal);
 
 //---------------------------------
 //       矩阵声明				  |

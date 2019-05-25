@@ -62,9 +62,9 @@ Color& operator +=(Color& a, const Color&b) {
 	a = a + b;
 	return a;
 }
-Color operator *(const Color& a, const Color&b);
+Color operator /(const Color& a, const Color&b);
 
-Color& operator *=(Color& a, const Color&b);
+Color& operator /=(Color& a, const Color&b);
 Color operator *(const Color& a, float t) {
 	return Color(a._r*t, a._g *t, a._b*t);
 }
@@ -73,6 +73,15 @@ Color& operator *=(Color& a, float t) {
 	
 }
 
+Color operator *(float t, const Color& a) {
+	return a * t;
+}
+Color operator *(const Color& a, const Color& b) {
+	return Color(a._r * b._r, a._g * b._g, a._r * b._r);
+}
+Color& operator *=(Color& a, const Color b) {
+	return a = a * b;
+}
 
 //---------------------------------
 //bresenham 直线画法			   |
@@ -333,6 +342,7 @@ Vector4& operator -= (Vector4& lsh, const Vector4& rsh) {
 	return lsh;
 }
 
+
 Vector4 operator + (const Vector4& lsh, const Vector4& rsh) {
 	return Vector4(lsh._x + rsh._x, lsh._y + rsh._y, lsh._z + rsh._z, 0);
 
@@ -357,6 +367,11 @@ float operator * (const Vector4& lsh, const Vector4& rsh) {
 	return lsh._x*rsh._x + lsh._y*rsh._y + lsh._z*rsh._z;
 
 }
+
+Vector4 operator - (const Vector4& rsh) {
+	return Vector4(-rsh._x, -rsh._y, -rsh._z, -rsh._w);
+}
+
 
 //---------------------------------
 //       矩阵相关函数			  |
@@ -459,6 +474,8 @@ Vector4& operator *= (Vertex4 &lsh, Matrix &rsh) {
 	return lsh;
 
 }
+
+
 
 Matrix getIdentity() {
 	return Matrix(
@@ -662,18 +679,46 @@ Light initDirectionalLight(const Vector4& direction, const Color &color) {
 	
 	light.direction = direction;
 
-	light._Ambient = color;
+	light._Ambient = 0.4*color;
 	light._Specular = color;
 	light._Diffuse = color;
 	return light;
 }
-void getSpecuC(Color *out, const Color& Mspecular, const Light &Light, const Vector4& view, const Vector4 &normal);
-void getAmbientC(Color *out, const Color& Mambient, const Light &Lambient);
-void getdiffuseC(Color *out, const Color& Mspecular, const Light &Lspecular, const Vector4 &normal);
+void getSpecuC(Color* out, const Matreial& M, const Light& Light, const Vector4& view, const Vector4& normal) {
+	Vector4 l = -Light.direction;
+	Vector4 h = view + l;
+	VecNormalize(h, h);
+	float cost = std::max(h * normal, 0.0f);
+	if (cost > 0)
+		cost = powf(cost, M._power);
+	*out = Light._Specular * cost  ;
+	*out *= M._Specular;
+}
+void getAmbientC(Color* out, const Matreial& M, const Light& Light) {
+	*out = Light._Ambient * M._Ambient;
+}
+
+void getdiffuseC(Color* out, const Matreial& M, const Light& Light, const Vector4& normal) {
+	float cost = std::max(-Light.direction * normal, 0.0f);
+	*out = cost * Light._Diffuse * M._Diffuse;
+}
 
 
+Light* Lightarr() {
+	static Light* Lightarr = new Light[10]();
+	return Lightarr;
+}
+void setLight(int num, Light* light) {
+	*(Lightarr() +num) = *light;
+}
+Light* getLight(int index) {
+	return Lightarr() + index;
+}
+void releaseLight() {
+	delete[] Lightarr();
+}
 //---------------------------------
-//			Z-buffer			   |
+//			Z-buffer			  |
 //---------------------------------
 float *Z_buffer;
 

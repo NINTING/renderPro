@@ -8,6 +8,54 @@
 using namespace std;
 
 
+
+
+Matrix tranMatrix;
+Matrix ProjectMatr, ViewMatr, WorldMatr;
+
+void setMatrix(int flag, Matrix * m) {
+	if (flag & TS_WORLD)
+		WorldMatr = *m;
+	if (flag & TS_VIEW)
+		ViewMatr = *m;
+	if (flag & TS_PROJECTION)
+		ProjectMatr = *m;
+}
+
+void init() {
+	MatrixIdentity(ProjectMatr);
+	MatrixIdentity(ViewMatr);
+	MatrixIdentity(WorldMatr);
+}
+
+
+
+void setup() {
+	//æÿ’Û…Ë÷√
+	init();
+	memset(img, 255, sizeof(img));
+	Texture tex;
+	init_Texture(&tex, 255, 255);
+	//RsetFVF(FVFtexture);
+	RsetFVF(FVFtexture);
+	RsetTex(&tex);
+	Matrix Vm, Pm;
+	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
+	Vector4 at(0.0f, 0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	viewMatrix(Vm, at, view, up);
+	setMatrix(TS_VIEW, &Vm);
+	setMatrix(TS_PROJECTION, &Pm);
+
+	//Zbuffer≥ı ºªØ
+	setZbuffer(Width, Height);
+
+	//π‚’’
+	Vector4 direction(1, 0, 0, 0);
+	Color Lc(1, 1, 1);
+	Light direL = initDirectionalLight(direction, Lc);
+	setLight(0, &direL);
+}
+
 void fillMesh(std::vector<VertexAtrr>& list) {
 	for (int i = 0; i < list.size(); i+=3) {
 		fillTriangle1(list[i], list[i+1], list[i+2]);
@@ -87,31 +135,23 @@ void release(t * arr) {
 	arr = 0;
 }
 
-Matrix tranMatrix; 
-Matrix ProjectMatr, ViewMatr, WorldMatr;
+
 
 //æÿ’Ûœ‡≥ÀÀ≥–Ú--°∑ ¿ΩÁæÿ’Û* ”Ω«æÿ’Û*Õ∂”∞æÿ’Û
 
-#define TS_WORLD 1
-#define TS_VIEW 2
-#define TS_PROJECTION 4
-void setMatrix(int flag,Matrix* m) {
-	if(flag&TS_WORLD)
-		WorldMatr = *m;
-	if (flag&TS_VIEW)
-		ViewMatr = *m;
-	if (flag&TS_PROJECTION)
-		ProjectMatr = *m;
-}
+
 
 void getTranMatrix() {
 	tranMatrix = WorldMatr * ViewMatr * ProjectMatr;
 }
 
 void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, const vector<VertexAtrr>&vb,int TriangleNum) {
+
 	getTranMatrix();
 	size_t size = TriangleNum*3;
+	
 	VertexAtrr a, b, c;
+
 	for (int i = 0; i <size; i += 3) {
 		
 		MatrixApply(&a._v, vb[ib[i]]._v, tranMatrix);
@@ -183,10 +223,11 @@ void triangleTest() {
 	release(ib);
 	draw("color10.ppm");
 }
-
+	
 void pyramid()
 {
-	VertexAtrr a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Green), c(-1.0f, 0.0f, 0.0f, 1, Blue), d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
+	VertexAtrr a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Green), c(-1.0f, 0.0f, 0.0f, 1, Blue),
+		d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
 
 	indeiceBuffer* ib = 0;
 	vector<VertexAtrr>list{ a,b,c,d,e };
@@ -213,9 +254,11 @@ void pyramid()
 
 
 void Cubetest() {
-	VertexAtrr v1(-1.0f, 1.0, -1.0f, 1, Red), v2(1.0f, 1.0, -1.0f, 1, Red), v3(1.0f, -1.0, -1.0f, 1, Red), v4(-1.0f, -1.0f, -1.0f, 1, Red);
+	VertexAtrr v1(-1.0f, 1.0, -1.0f, 1, Red), v2(1.0f, 1.0, -1.0f, 1, Red),
+		v3(1.0f, -1.0, -1.0f, 1, Red), v4(-1.0f, -1.0f, -1.0f, 1, Red);
 	
-	VertexAtrr    v5(-1.0f, 1.0, 1.0f, 1.0f, Blue), v6(1.0f, 1.0, 1.0f, 1, Blue), v7(1.0f, -1.0, 1.0f, 1, Blue), v8(-1.0f, -1.0, 1.0f, 1, Blue);
+	VertexAtrr v5(-1.0f, 1.0, 1.0f, 1.0f, Blue), v6(1.0f, 1.0, 1.0f, 1, Blue),
+		v7(1.0f, -1.0, 1.0f, 1, Blue), v8(-1.0f, -1.0, 1.0f, 1, Blue);
 
 	indeiceBuffer* ib = 0;
 	vector<VertexAtrr>list{ v1,v2,v3,v4,v5,v6,v7,v8 };
@@ -256,9 +299,13 @@ void Cubetest() {
 }
 
 void textureCube() {
-	VertexAtrr v0(-1.0f, 1.0, -1.0f, 1,0,0), v1(1.0f, 1.0, -1.0f, 1, 0,1), v2(1.0f, -1.0, -1.0f, 1, 1,1), v3(-1.0f, -1.0f, -1.0f, 1, 1,0);
 
-	VertexAtrr v4(-1.0f, 1.0, 1.0f, 1.0f, 0,1),v5(1.0f,1.0, 1.0f,1,0,0), v6(1.0f, -1.0, 1.0f,1.0f,1.0f,0.0f), v7(-1.0f, -1.0, 1.0f, 1, 1.0f,1.0f);
+	setup();
+	VertexAtrr v0(-1.0f, 1.0, -1.0f, 1,0,0), v1(1.0f, 1.0, -1.0f, 1, 0,1), 
+		v2(1.0f, -1.0, -1.0f, 1, 1,1), v3(-1.0f, -1.0f, -1.0f, 1, 1,0);
+
+	VertexAtrr v4(-1.0f, 1.0, 1.0f, 1.0f, 0,1),v5(1.0f,1.0, 1.0f,1,0,0),
+		v6(1.0f, -1.0, 1.0f,1.0f,1.0f,0.0f), v7(-1.0f, -1.0, 1.0f, 1, 1.0f,1.0f);
 
 	indeiceBuffer* ib = 0;
 	vector<VertexAtrr>list{ v0,v1,v2,v3,v4,v5,v6,v7 };
@@ -294,42 +341,71 @@ void textureCube() {
 	//wireFrame(outlist);
 	fillMesh(outlist);
 	release(ib);
+	releaseZbuffer();
+	releaseLight();
 	//fillTriangle2(a, b, c);
 	//wareFrame(list);
 	
 }
 
-void setup() {
-	//æÿ’Û…Ë÷√
-	Matrix Vm, Pm;
-	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(0.0f,0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
-	viewMatrix(Vm, at, view, up);
-	setMatrix(TS_VIEW,&Vm);
-	setMatrix(TS_PROJECTION,&Pm);
+void LightCube() {
 
-	//Zbuffer≥ı ºªØ
-	setZbuffer(Width,Height);
+	setup();
+	VertexAtrr v0(-1.0f, 1.0, -1.0f, 1, 0, 0), v1(1.0f, 1.0, -1.0f, 1, 0, 1),
+		v2(1.0f, -1.0, -1.0f, 1, 1, 1), v3(-1.0f, -1.0f, -1.0f, 1, 1, 0);
+
+	VertexAtrr v4(-1.0f, 1.0, 1.0f, 1.0f, 0, 1), v5(1.0f, 1.0, 1.0f, 1, 0, 0),
+		v6(1.0f, -1.0, 1.0f, 1.0f, 1.0f, 0.0f), v7(-1.0f, -1.0, 1.0f, 1, 1.0f, 1.0f);
+
+	indeiceBuffer* ib = 0;
+	vector<VertexAtrr>list{ v0,v1,v2,v3,v4,v5,v6,v7 };
+	
+	applyForIndeices(&ib, 12 * 3);
+	//front
+	ib[0] = 0, ib[1] = 3, ib[2] = 1;
+	ib[3] = 3, ib[4] = 2, ib[5] = 1;
+
+	//left
+	ib[6] = 0, ib[7] = 4, ib[8] = 3;
+	ib[9] = 3, ib[10] = 4, ib[11] = 7;
+
+	//right
+	ib[12] = 2, ib[13] = 5, ib[14] = 1;
+	ib[15] = 2, ib[16] = 6, ib[17] = 5;
+
+	//back
+	ib[18] = 4, ib[19] = 5, ib[20] = 7;
+	ib[21] = 7, ib[22] = 5, ib[23] = 6;
+
+	//top
+	ib[24] = 0, ib[25] = 1, ib[26] = 4;
+	ib[27] = 1, ib[28] = 5, ib[29] = 4;
+
+	//bottom
+	ib[30] = 7, ib[31] = 6, ib[32] = 3;
+	ib[33] = 6, ib[34] = 2, ib[35] = 3;
+	vector<Triangle> triArr;
+	createTriMesh();
+	vector<Triangle> outlist;
+	IndeicesProcessPipeline(&outlist, ib, list, 12);
+	//wireFrame(outlist);
+	fillMesh(outlist);
+	release(ib);
+	releaseZbuffer();
+	releaseLight();
+	//fillTriangle2(a, b, c);
+	//wareFrame(list);
 
 }
 
-void init() {
-	MatrixIdentity(ProjectMatr);
-	MatrixIdentity(ViewMatr);
-	MatrixIdentity(WorldMatr);
-}
+
+
 
 int main() {
-	init();
-	memset(img,255, sizeof(img));
-	Texture tex; 
-	init_Texture(&tex,255,255);
-	//RsetFVF(FVFtexture);
-	RsetFVF(FVFtexture);
-	RsetTex(&tex);
+	
 
 	//pyramid();
-	setup();
+	
 	//Cubetest();
 	
 	textureCube();
