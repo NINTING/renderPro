@@ -19,9 +19,9 @@ void getTexPixel(const Texture *Texobj ,Color* c,float x,float y) {
 	x *= Texobj->width - 1;
 	y *= Texobj->height - 1;
 	int row= y + 0.5, col = x + 0.5;
-	if (row >= Texobj->height) row = Texobj->height - 1;
-	if (row < 0)row = 0;
-	if (col >= Texobj->width)  col = Texobj->width - 1;
+	if (row >= Texobj->height) row = Texobj->height-1;
+	if (row < 0)row =0;
+	if (col >= Texobj->width)  col =  Texobj->width-1; 
 	if (col < 0)col = 0;
 	float *p = Texobj->tex + (row *Texobj->width  + col)*3;
 	c->_r = p[0], c->_g = p[1], c->_b = p[2];
@@ -43,8 +43,6 @@ void init_Texture(Texture * texobj, int w, int h) {
 			
 		}
 	}
-
-
 }
 
 void RsetFVF(int FvF) {
@@ -80,10 +78,10 @@ Color& operator *=(Color& a, float t) {
 //bresenham 直线画法			   |
 //---------------------------------
 
-void bresenham(const vertex4 &begin, const vertex4& end) {
+void bresenham(const VertexAtrr &begin, const VertexAtrr& end) {
 
 	int x1, y1, x2, y2;
-	x1 = begin._x, y1 = begin._y, x2 = end._x, y2 = end._y;
+	x1 = begin._v._x, y1 = begin._v._y, x2 = end._v._x,y2 = end._v._y;
 	bresenham(x1, y1, x2, y2);
 }
 
@@ -127,43 +125,45 @@ void setPixel(int x, int y, Color color) {
 	p[0] = (char)(color._r*255+0.5) ,p[1] = (char)(color._g*255+0.5) , p[2] = (char)(color._b*255+0.5);
 
 }
-void setPixel(const vertex4& v) {
-	int y = v._y, x = v._x;
+void setPixel(const VertexAtrr& va) {
+	int y = va._v._y, x = va._v._x;
 	char *p = img + (y*Width + x) * 3;
-	p[0] = v._c._r, p[1] = v._c._g, p[2] = v._c._b;
+	p[0] = va._c._r, p[1] = va._c._g, p[2] = va._c._b;
 }
 
-
-void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line															//sort on the y axis
-	if (v0._y > v1._y)std::swap(v0, v1);
-	if (v0._y > v2._y)std::swap(v0, v2);
-	if (v1._y > v2._y) std::swap(v1, v2);
+void fillTriangle1(Triangle& tri) {
+	fillTriangle1(tri.v0, tri.v1, tri.v2);
+}
+void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line															//sort on the y axis
+	if (v0._v._y > v1._v._y)std::swap(v0, v1);
+	if (v0._v._y > v2._v._y)std::swap(v0, v2);
+	if (v1._v._y > v2._v._y) std::swap(v1, v2);
 
 	//scan flat-top triangel
-	for (int y = v0._y+0.5; y <= v2._y; y++) {
+	for (int y = v0._v._y+0.5; y <= v2._v._y; y++) {
 		//上下插值
 		float d1,d2;
 
 		//左右端点和插值
-		vertex4 lv, rv;
-		d2 = (float)(y - v0._y) / (float)(v2._y - v0._y + 1);
+		VertexAtrr lv, rv;
+		d2 = (float)(y - v0._v._y) / (float)(v2._v._y - v0._v._y + 1);
 		vertexInterp(&rv, v0, v2, d2);
 
-		if (y < v1._y) {
-			d1 = (float)(y - v0._y) / (float)(v1._y - v0._y + 1);
+		if (y < v1._v._y) {
+			d1 = (float)(y - v0._v._y) / (float)(v1._v._y - v0._v._y + 1);
 			vertexInterp(&lv, v0, v1, d1);
 		}
 		else {
-			d1 = (float)(y - v1._y) / (float)(v2._y - v1._y + 1);
+			d1 = (float)(y - v1._v._y) / (float)(v2._v._y - v1._v._y + 1);
 			vertexInterp(&lv, v1, v2, d1);
 		}
 		
-		lv._y = rv._y = y;
-		if (lv._x > rv._x)std::swap(lv, rv);
+		//lv._y = rv._y = y;
+		if (lv._v._x > rv._v._x)std::swap(lv, rv);
 		//lineclip(lv, rv);
 		
-		float overSubx = 1 / (rv._x - lv._x);
-		if (rv._x - lv._x == 0)overSubx = 0.0f;
+		float overSubx = 1 / (rv._v._x - lv._v._x);
+		if (rv._v._x - lv._v._x == 0)overSubx = 0.0f;
 
 		float zstep = (rv.rhw - lv.rhw) *overSubx;
 		float bstep = 0;
@@ -171,7 +171,7 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line										
 		float rstep = 0;
 		float ustep = 0;
 		float vstep = 0;
-		
+		//float zbstep = (rv._v._z - lv._v._z) *overSubx;;
 		if (Presentfvf & FVFcolor) {
 			//颜色插值
 			bstep = (rv._c._b - lv._c._b)*overSubx;
@@ -187,8 +187,9 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line										
 		}
 		float boverz, goverz, roverz, overz,uoverz,voverz;
 		int x;
-		for (x = lv._x,boverz = lv._c._b, goverz = lv._c._g, roverz = lv._c._r,overz = lv.rhw,uoverz = lv._tu,voverz = lv._tv;
-			x <= rv._x;
+		float z;
+		for (x = lv._v._x+0.5f,z = lv._v._z,boverz = lv._c._b, goverz = lv._c._g, roverz = lv._c._r,overz = lv.rhw,uoverz = lv._tu,voverz = lv._tv;
+			x <= rv._v._x;
 			x++,boverz+=bstep,goverz+=gstep,roverz+=rstep,overz+=zstep,uoverz+=ustep,voverz+=vstep) {
 			Color c(1,1,1);
 			float zz = 1.0f / overz;
@@ -197,20 +198,25 @@ void fillTriangle1(Vector4 v0, Vector4 v1, Vector4 v2) {			//scan line										
 				c._r = roverz*zz,c._g = goverz*zz,c._b =  boverz*zz;
 			if (Presentfvf&FVFtexture) 
 				getTexPixel(PresentTex,&c,uoverz*zz,voverz*zz);
-			
-			setPixel(x,y,c);
+			if (overz > getZbuffer(x, y)) {
+				setPixel(x, y, c);
+				writeZbuffer(x,y,overz);
+			}
 		}
 
 	}
 
 }
 
-void vertexInterp(vertex4 *out,const vertex4 &v0, const vertex4 &v1,float t) {
+void vertexInterp(VertexAtrr *out,const VertexAtrr &v0, const VertexAtrr &v1,float t) {
 
-	out->_x = interp(v0._x, v1._x, t);
-	float BoneOverZ = 1.0 / v0.rhw;
-	float ToneOverZ = 1.0 / v1.rhw;	
+	out->_v._x = interp(v0._v._x, v1._v._x, t);
+	out->_v._y = interp(v0._v._y, v1._v._y, t);
+	out->_v._z = interp(v0._v._z, v1._v._z, t);
+	float BoneOverZ = v0.rhw;
+	float ToneOverZ = v1.rhw;
 
+	
 	out->rhw   = interp(BoneOverZ, ToneOverZ, t);
 	out->_c._b = interp(v0._c._b*BoneOverZ, v1._c._b*ToneOverZ, t);
 	out->_c._r = interp(v0._c._r*BoneOverZ, v1._c._r*ToneOverZ, t);
@@ -258,7 +264,7 @@ void vertexInterp(vertex4 *out,const vertex4 &v0, const vertex4 &v1,float t) {
 //       2D直线裁剪				  |
 //---------------------------------
 
-int getcode(const vertex4 &v) {
+int getcode(const Vertex4 &v) {
 	int p = 0;
 	if (v._x < Lx) p |= L;
 	if (v._y < By) p |= B;
@@ -268,32 +274,40 @@ int getcode(const vertex4 &v) {
 
 }
 
-void clip(int& code, vertex4& v, const vertex4 &u) {
+void clip(int& code, VertexAtrr& va, const VertexAtrr & ua) {
 	if (code&L) {
-		v._y = v._y + (u._y - v._y)*(Lx - v._x) / (u._x - v._x);
-		v._x = Lx;
+		float t = Lx - va._v._x / (ua._v._x - va._v._x);
+	//	va._v._y = va._v._y + (ua._v._y - va._v._y)*(Lx - va._v._x) / (ua._v._x - va._v._x);
+	//	va._v._x = Lx;
+		vertexInterp(&va, va, ua,t);
 	}
 	else if (code&R) {
-		v._y = v._y + (u._y - v._y)*(Rx - v._x) / (u._x - v._x);
-		v._x = Rx;
+		float t = Rx - va._v._x / (ua._v._x - va._v._x);
+		/*va._v._y = va._v._y + (ua._v._y - va._v._y)*(Rx - va._v._x) / (ua._v._x - va._v._x);
+		va._v._x = Rx;*/
+		vertexInterp(&va, va, ua, t);
 	}
 	else if (code&T) {
-		v._x = v._x + (u._x - v._x)*(Ty - v._y) / (u._y - v._y);
-		v._y = Ty;
+		float t = Ty - va._v._y / (ua._v._y - va._v._y);
+	/*	va._v._x = va._v._x + (ua._v._x - va._v._x)*(Ty - va._v._y) / (ua._v._y - va._v._y);
+		va._v._y = Ty;*/
+		vertexInterp(&va, va, ua, t);
 	}
 	else if (code&B) {
-		v._x = v._x + (u._x - v._x)*(By - v._y) / (u._y - v._y);
-		v._y = By;
+		float t = By - va._v._y / (ua._v._y - va._v._y);
+		/*va._v._x = va._v._x + (ua._v._x - va._v._x)*(By - va._v._y) / (ua._v._y - va._v._y);
+		va._v._y = By;*/
+		vertexInterp(&va, va, ua, t);
 	}
-	code = getcode(v);
+	code = getcode(va._v);
 
 }
 
-void lineclip(vertex4 &a, vertex4 &b) {
+void lineclip(VertexAtrr &a, VertexAtrr &b) {
 
 	//	int x0 = a._x, int y0 = a._y, int x1 = b._x, int y1=b._y;
 	int p1 = 0, p2 = 0;
-	p1 = getcode(a); p2 = getcode(b);
+	p1 = getcode(a._v); p2 = getcode(b._v);
 	if (p1&p2) return;
 	//if (!p1 && !p2)
 
@@ -301,8 +315,6 @@ void lineclip(vertex4 &a, vertex4 &b) {
 		clip(p1, a, b);
 		clip(p2, b, a);
 	}
-
-
 
 }
 
@@ -442,7 +454,7 @@ Vector4 operator * (const Vector4 &lrh, const Matrix &rsh) {
 }
 
 
-Vector4& operator *= (vertex4 &lsh, Matrix &rsh) {
+Vector4& operator *= (Vertex4 &lsh, Matrix &rsh) {
 	lsh = lsh * rsh;
 	return lsh;
 
@@ -553,20 +565,41 @@ void MatrixTranslation(Matrix& out, float x, float y, float z) {
 //---------------------------------
 
 
-//正面为逆时针方向构成
-bool backCull(const vertex4& a,const vertex4& b,const vertex4& c) {
+void getNormal( Triangle * tri) {
+	Vector4 u = tri->v1._v - tri->v0._v;
+	Vector4 v = tri->v2._v - tri->v0._v;
+	VecCross(&tri->normal, u, v);
+}
+
+void getNormal(Vector4 *out, const Vertex4& a, const Vertex4& b, const Vertex4& c) {
 	Vector4 u = b - a;
-    Vector4 v =  c-a;
-	
-	Vector4 zero(0, 0, 0, 0);
+	Vector4 v = c - a;
+
+	VecCross(out, u, v);
+}
+
+
+
+//正面为逆时针方向构成
+bool backCull(const Vertex4& a,const Vertex4& b,const Vertex4& c) {
 	Vector4 normal;
-	VecCross(&normal, u, v);
+	getNormal(&normal, a, b, c);
+	Vector4 zero(0, 0, 0, 0);
 	Vector4 view =  zero - a;
-	
 	float cosT = view * normal;
 	if (cosT >= 0) 
 		return false;
 	return true;
+}
+
+bool backCull(const Triangle& tri) {
+	Vector4 zero(0, 0, 0, 0);
+	Vector4 view = zero - tri.v0._v;
+	float cosT = view * tri.normal;
+	if (cosT >= 0)
+		return false;
+	return true;
+
 }
 
 //---------------------------------
@@ -618,3 +651,46 @@ void getTexture(const char* file) {
 	delete[] buffer;*/
 
 }
+
+
+//---------------------------------
+//			  光照处理			  |
+//---------------------------------
+Light initDirectionalLight(const Vector4& direction, const Color &color) {
+	Light light;
+	light.type = LightDirectional;
+	
+	light.direction = direction;
+
+	light._Ambient = color;
+	light._Specular = color;
+	light._Diffuse = color;
+	return light;
+}
+void getSpecuC(Color *out, const Color& Mspecular, const Light &Light, const Vector4& view, const Vector4 &normal);
+void getAmbientC(Color *out, const Color& Mambient, const Light &Lambient);
+void getdiffuseC(Color *out, const Color& Mspecular, const Light &Lspecular, const Vector4 &normal);
+
+
+//---------------------------------
+//			Z-buffer			   |
+//---------------------------------
+float *Z_buffer;
+
+void setZbuffer(int w, int h) {
+	Z_buffer = new float[w*h]();
+	//std::fill(Z_buffer, Z_buffer + w * h, 1.0f);
+}
+
+void releaseZbuffer() {
+	delete[] Z_buffer;
+}
+
+void writeZbuffer(int x, int y, float z) {
+	*(Z_buffer + y*Width+x) = z;
+}
+float getZbuffer(int x, int y) {
+	return *(Z_buffer + y*Width+x);
+}
+
+

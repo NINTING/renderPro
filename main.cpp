@@ -8,16 +8,19 @@
 using namespace std;
 
 
-
-
-
-void fillMesh(std::vector<Vector4>& list) {
+void fillMesh(std::vector<VertexAtrr>& list) {
 	for (int i = 0; i < list.size(); i+=3) {
 		fillTriangle1(list[i], list[i+1], list[i+2]);
 	}
 }
 
-void wireFrame(std::vector<Vector4> list) {
+void fillMesh(std::vector<Triangle>& list) {
+	for (int i = 0; i < list.size(); i ++) {
+		fillTriangle1(list[i]);
+	}
+}
+
+void wireFrame(std::vector<VertexAtrr> list) {
 	for (int i = 0; i < list.size(); i +=3) {
 		lineclip(list[i], list[i + 1]);
 		bresenham(list[i], list[i + 1]);
@@ -60,7 +63,7 @@ void PerspectiveMatrix(Matrix * Pm, float fov,float Aspect,float near,float far)
 
 
 void toScreen(Vector4 *p){
-
+	
 	int X = 0, Y = 0;
 	float dw = 1.0f / p->_w;
 	p->_x = (p->_x*dw + 1.0f)*Width *0.5f+X;
@@ -105,44 +108,45 @@ void getTranMatrix() {
 	tranMatrix = WorldMatr * ViewMatr * ProjectMatr;
 }
 
-void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, const vector<vertex4>&vb,int TriangleNum) {
+void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, const vector<VertexAtrr>&vb,int TriangleNum) {
 	getTranMatrix();
-	size_t size = TriangleNum * 3;
-	Vector4 a, b, c;
+	size_t size = TriangleNum*3;
+	VertexAtrr a, b, c;
 	for (int i = 0; i <size; i += 3) {
 		
-		MatrixApply(&a, vb[ib[i]], tranMatrix);
+		MatrixApply(&a._v, vb[ib[i]]._v, tranMatrix);
 		
-		a._c = vb[ib[i]]._c; a.rhw = a._z;
+		a._c = vb[ib[i]]._c; a.rhw = 1.0f/a._v._w;
 		a._tu = vb[ib[i]]._tu; a._tv = vb[ib[i]]._tv;
 	
-		MatrixApply(&b, vb[ib[i + 1]], tranMatrix);
+		MatrixApply(&b._v, vb[ib[i + 1]]._v, tranMatrix);
 
-		b._c = vb[ib[i + 1]]._c; b.rhw = b._z;
+		b._c = vb[ib[i + 1]]._c; b.rhw = 1.0f/b._v._w;
 		b._tu = vb[ib[i+1]]._tu; b._tv = vb[ib[i+1]]._tv;
 		
-		MatrixApply(&c, vb[ib[i + 2]],tranMatrix);
+		MatrixApply(&c._v, vb[ib[i + 2]]._v,tranMatrix);
 		
-		c._c = vb[ib[i + 2]]._c; c.rhw =c._z;
+		c._c = vb[ib[i + 2]]._c; c.rhw =1.0f/c._v._w;
 		c._tu = vb[ib[i+2]]._tu; c._tv = vb[ib[i+2]]._tv;
 		
 		//背面消隐
-		if (backCull(a, b, c)) {
-			outlist->push_back(a);
-			outlist->push_back(b);
-			outlist->push_back(c);
+		if (backCull(a._v, b._v, c._v)) {
+			outlist->push_back(Triangle(a,b,c));
+
 		}
 	}
 
 
 	size = outlist->size();
 	for (int i = 0; i < size; i++) {
-		toScreen(&(*outlist)[i]);
+		toScreen(&((*outlist)[i].v0._v));
+		toScreen(&(*outlist)[i].v1._v);
+		toScreen(&(*outlist)[i].v2._v);
 	}
 	
 }
 
-//void vertexProcessPipeline(vector<vertex4>* outlist,const vector<vertex4>& list) {
+//void vertexProcessPipeline(vector<VertexAtrr>* outlist,const vector<VertexAtrr>& list) {
 //	Matrix Pm,Vm , tranMatrix;
 //	
 //	PerspectiveMatrix(&Pm);
@@ -164,14 +168,14 @@ void IndeicesProcessPipeline(vector<vertex4>* outlist,const indeiceBuffer* ib, c
 
 void triangleTest() {
 	
-	vertex4 a(5.0f, 0, 0.0f, 1,Blue,0,0), b(0.0f, 5.0f, 0.0f, 1, Red,0,1), c(0.0f, -5.0f, 0.0f, 1, Green,1,0);
-	vertex4 d(-5.0f, 0, 0.0f, 1, Blue,1,1);
+	VertexAtrr a(5.0f, 0, 0.0f, 1,Blue,0,0), b(0.0f, 5.0f, 0.0f, 1, Red,0,1), c(0.0f, -5.0f, 0.0f, 1, Green,1,0);
+	VertexAtrr d(-5.0f, 0, 0.0f, 1, Blue,1,1);
 	indeiceBuffer* ib = 0;
-	vector<Vector4>list{ a,b,c ,d};
+	vector<VertexAtrr>list{ a,b,c ,d};
 	applyForIndeices(&ib, 2*3);
 	ib[0] = 0, ib[1] = 1, ib[2] = 2;
 	ib[3] = 2, ib[4] = 1, ib[5] = 3;
-	vector<vertex4> outlist;
+	vector<Triangle> outlist;
 
 	IndeicesProcessPipeline(&outlist, ib, list, 2);
 	//wireFrame(outlist);
@@ -182,10 +186,10 @@ void triangleTest() {
 
 void pyramid()
 {
-	vertex4 a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Green), c(-1.0f, 0.0f, 0.0f, 1, Blue), d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
+	VertexAtrr a(1.0f, 0, 0.0f, 1, Red), b(0.0f, 0.0f, 1.0f, 1, Green), c(-1.0f, 0.0f, 0.0f, 1, Blue), d(0.0f, 0.0f, -1.0f, 1, Red), e(0.0f, 1.0f, 0.0f, 1.0f, White);
 
 	indeiceBuffer* ib = 0;
-	vector<Vector4>list{ a,b,c,d,e };
+	vector<VertexAtrr>list{ a,b,c,d,e };
 	applyForIndeices(&ib, 4 * 3);
 	
 	//front
@@ -197,7 +201,7 @@ void pyramid()
 	
 	ib[9] = 3, ib[10] = 0, ib[11] = 4;
 
-	vector<vertex4> outlist;
+	vector<Triangle> outlist;
 	
 	IndeicesProcessPipeline(&outlist, ib, list, 4);
 	//wireFrame(outlist);
@@ -209,12 +213,12 @@ void pyramid()
 
 
 void Cubetest() {
-	vertex4 v1(-1.0f, 1.0, -1.0f, 1, Red), v2(1.0f, 1.0, -1.0f, 1, Red), v3(1.0f, -1.0, -1.0f, 1, Red), v4(-1.0f, -1.0f, -1.0f, 1, Red);
+	VertexAtrr v1(-1.0f, 1.0, -1.0f, 1, Red), v2(1.0f, 1.0, -1.0f, 1, Red), v3(1.0f, -1.0, -1.0f, 1, Red), v4(-1.0f, -1.0f, -1.0f, 1, Red);
 	
-	vertex4    v5(-1.0f, 1.0, 1.0f, 1.0f, Blue), v6(1.0f, 1.0, 1.0f, 1, Blue), v7(1.0f, -1.0, 1.0f, 1, Blue), v8(-1.0f, -1.0, 1.0f, 1, Blue);
+	VertexAtrr    v5(-1.0f, 1.0, 1.0f, 1.0f, Blue), v6(1.0f, 1.0, 1.0f, 1, Blue), v7(1.0f, -1.0, 1.0f, 1, Blue), v8(-1.0f, -1.0, 1.0f, 1, Blue);
 
 	indeiceBuffer* ib = 0;
-	vector<Vector4>list{ v1,v2,v3,v4,v5,v6,v7,v8 };
+	vector<VertexAtrr>list{ v1,v2,v3,v4,v5,v6,v7,v8 };
 	applyForIndeices(&ib, 12 * 3);
 	//front
 	ib[0] = 0, ib[1] = 3, ib[2] = 1;
@@ -241,7 +245,7 @@ void Cubetest() {
 	ib[33] = 6, ib[34] = 2, ib[35] = 3;
 
 
-	vector<vertex4> outlist;																													
+	vector<Triangle> outlist;																													
 	IndeicesProcessPipeline(&outlist, ib, list, 12);
 	//wireFrame(outlist);
 	fillMesh(outlist);
@@ -252,12 +256,12 @@ void Cubetest() {
 }
 
 void textureCube() {
-	vertex4 v0(-1.0f, 1.0, -1.0f, 1,0,0), v1(1.0f, 1.0, -1.0f, 1, 0,1), v2(1.0f, -1.0, -1.0f, 1, 1,1), v3(-1.0f, -1.0f, -1.0f, 1, 1,0);
+	VertexAtrr v0(-1.0f, 1.0, -1.0f, 1,0,0), v1(1.0f, 1.0, -1.0f, 1, 0,1), v2(1.0f, -1.0, -1.0f, 1, 1,1), v3(-1.0f, -1.0f, -1.0f, 1, 1,0);
 
-	vertex4 v4(-1.0f, 1.0, 1.0f, 1.0f, 0,1),v5(1.0f,1.0, 1.0f,1,0,0), v6(1.0f, -1.0, 1.0f,1.0f,1.0f,0.0f), v7(-1.0f, -1.0, 1.0f, 1, 1.0f,1.0f);
+	VertexAtrr v4(-1.0f, 1.0, 1.0f, 1.0f, 0,1),v5(1.0f,1.0, 1.0f,1,0,0), v6(1.0f, -1.0, 1.0f,1.0f,1.0f,0.0f), v7(-1.0f, -1.0, 1.0f, 1, 1.0f,1.0f);
 
 	indeiceBuffer* ib = 0;
-	vector<Vector4>list{ v0,v1,v2,v3,v4,v5,v6,v7 };
+	vector<VertexAtrr>list{ v0,v1,v2,v3,v4,v5,v6,v7 };
 	
 	applyForIndeices(&ib, 12 * 3);
 	//front
@@ -285,7 +289,7 @@ void textureCube() {
 	ib[33] = 6, ib[34] = 2, ib[35] = 3;
 
 	
-	vector<vertex4> outlist;
+	vector<Triangle> outlist;
 	IndeicesProcessPipeline(&outlist, ib, list, 12);
 	//wireFrame(outlist);
 	fillMesh(outlist);
@@ -296,16 +300,16 @@ void textureCube() {
 }
 
 void setup() {
-	
-	
+	//矩阵设置
 	Matrix Vm, Pm;
-
-	
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(0.0f,0.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	Vector4 at(0.0f,0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
 	viewMatrix(Vm, at, view, up);
 	setMatrix(TS_VIEW,&Vm);
 	setMatrix(TS_PROJECTION,&Pm);
+
+	//Zbuffer初始化
+	setZbuffer(Width,Height);
 
 }
 
@@ -323,17 +327,18 @@ int main() {
 	//RsetFVF(FVFtexture);
 	RsetFVF(FVFtexture);
 	RsetTex(&tex);
-	
+
 	//pyramid();
-	
 	setup();
 	//Cubetest();
+	
 	textureCube();
 	/*Matrix Tm;
-	MatrixTranslation(Tm, 3.0f, 0.0f, 0.0f);
+	MatrixTranslation(Tm, 0.5f, 0.0f, 2.0f);
 	setMatrix(TS_WORLD, &Tm);
 	textureCube();*/
-	draw("color1.ppm");
+	
+	draw("color3.ppm");
 	//triangleTest();
 	//getTexture("1.jpg");
 

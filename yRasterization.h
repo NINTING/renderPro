@@ -4,6 +4,7 @@
 #include<fstream>
 #include<cstring>
 #include<vector>
+
 const int Width =600, Height = 600;
 //#define vertex2(x,y) Vector4(x,y,0)
 
@@ -19,6 +20,7 @@ extern char img[(Width + 10)*(Height + 10) * 3];
 #define FVFcolor 1
 #define FVFtexture 2
 #define FVFwireframe 4
+
 
 #define indeiceBuffer int
 //---------------------------------
@@ -47,28 +49,33 @@ const Color Blue(0, 0, 1);
 //---------------------------------
 //       向量声明				  |
 //---------------------------------
+typedef
+struct Vector4
+{
+	float _x, _y, _z,_w;
+	Vector4() {};
+	Vector4(float x, float y, float z,float w) :_x(x), _y(y), _z(z),_w(w) {};
+
+}Vertex4, Vector4;
 
 typedef
-struct Vector4 {
-	float _x, _y, _z,_w;
+struct VertexAtrr {
+	Vector4 _v;
+	//float _x, _y, _z,_w;
 
 	//vertex attribute
 	Color _c;
 	float rhw;		// 1/z
 	float _tu, _tv;
 
-
-	Vector4() {
-		_x = 0.0f, _y = 0.0f, _z = 0.0f,_w = 0.0f;
-		_c =White; rhw = _z;
-	};
+	VertexAtrr(): _v(Vector4(0, 0, 0, 0)){};
 	
-	Vector4(float x, float y, float z, float w) :_x(x), _y(y), _z(z), _w(w) { _c =White; rhw = _z; };
-	Vector4(float x, float y, float z, float w, Color c) :_x(x), _y(y), _z(z), _w(w), _c(c) { rhw = _z; };
-	Vector4(float x, float y, float z, float w, Color c, float u, float v) :_x(x), _y(y), _z(z), _w(w), _c(c), _tu(u), _tv(v) { };
-	Vector4(float x, float y, float z, float w,float u,float v) :_x(x), _y(y), _z(z), _w(w),_tu(u),_tv(v) { _c = White; rhw = _z; };
+	VertexAtrr(float x, float y, float z, float w) :_v(Vector4(x,y,z,w)) { _c = White; };
+	VertexAtrr(float x, float y, float z, float w, Color c) :_v(Vector4(x, y, z, w)), _c(c) { };
+	VertexAtrr(float x, float y, float z, float w, Color c, float u, float v): _v(Vector4(x, y, z, w)), _c(c), _tu(u), _tv(v) { };
+	VertexAtrr(float x, float y, float z, float w,float u,float v) :_v(Vector4(x, y, z, w)),_tu(u),_tv(v) { _c = White; };
 
-}vertex4, Vector4;
+};
 
 Vector4 operator - (const Vector4& lsh, const Vector4& rsh);
 
@@ -82,6 +89,9 @@ float operator * (const Vector4& lsh, const Vector4& rsh );
 
 void VecNormalize(Vector4 & out,const Vector4& in);
 
+void getNormal(Vector4 *out, const Vertex4& a, const Vertex4& b, const Vertex4& c);
+
+
 //---------------------------------
 //       材质声明				  |
 //---------------------------------
@@ -92,6 +102,7 @@ struct Matreial {
 	Color _Diffuse;		//漫反射
 	float _power;		//控制镜面反射的光斑
 	//Color emition
+	Matreial() {};
 	Matreial(Color Ambient,Color Specular,Color Diffuse,float power):
 		_Ambient(Ambient),_Specular(Specular),_Diffuse(Diffuse),_power(power){}
 
@@ -100,18 +111,55 @@ struct Matreial {
 void setMatreial(Matreial *Mtr);
 
 //---------------------------------
-//       光照相关				  |
+//       三角类					  |
 //---------------------------------
 
-struct Light {
-	Color _Ambient;		//环境光
-	Color _Specular;		//镜面光
-	Color _Diffuse;		//漫反射
+
+
+struct Triangle {
+	VertexAtrr v0,v1,v2;
+	Vector4 normal;
+	Matreial _matreial;
+	Triangle(VertexAtrr a, VertexAtrr b, VertexAtrr c) :v0(a), v1(b), v2(c) {
+		getNormal(&normal, v0._v, v1._v, v2._v);
+	}
 
 };
 
-void getTrinormal(Vector4 *normal,vertex4 a,vertex4 b,vertex4 c);
+void getNormal(Triangle * tri);
 
+//---------------------------------
+//       光照相关				  |
+//---------------------------------
+enum LightType
+{
+	LightSpot = 1,
+	LightPoint = 2,
+	LightDirectional = 3,
+};
+
+struct Light {
+	Light() {};
+	Vector4 position;		//point ,spot light
+	Vector4 direction;
+	Color _Ambient;		    //环境光
+	Color _Specular;		//镜面光
+	Color _Diffuse;		    //漫反射
+	LightType type;
+	float Attenuation0;
+	float Attenuation1;
+	float Attenuation2;
+	float range;
+};
+
+Light initDirectionalLight(const Vector4& direction,const Color &color);
+Light initPointLight(Vector4 direction, Vector4);
+Light initSpotLight(Vector4 direction, Vector4);
+
+
+void getSpecuC(Color *out,const Color& Mspecular,const Light &Light,const Vector4& view,const Vector4 &normal);
+void getAmbientC(Color *out, const Color& Mambient, const Light &Lambient);
+void getdiffuseC(Color *out, const Color& Mspecular, const Light &Lspecular, const Vector4 &normal);
 
 //---------------------------------
 //       矩阵声明				  |
@@ -139,7 +187,7 @@ Matrix operator * (const Matrix &lrh, const Matrix &rsh);
 Matrix& operator *= (Matrix &lrh, const Matrix &rsh);
 
 Vector4 operator * (const Vector4 &lrh, const Matrix &rsh);
-Vector4& operator *= (vertex4 &lrh, Matrix &rsh);
+Vector4& operator *= (Vector4 &lrh, Matrix &rsh);
 
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b);
 
@@ -172,8 +220,8 @@ void MatrixApply(Vector4 *out, const Vector4 &v, const Matrix &m);
 
 
 //背面消隐
-bool backCull(const vertex4& a, const vertex4& b,const vertex4& c);
-
+bool backCull(const Vertex4& a, const Vertex4& b,const Vertex4& c);
+bool backCull(const Triangle& tri);
 //typedef
 //struct vector2 {
 //	float x, y;
@@ -189,9 +237,9 @@ bool backCull(const vertex4& a, const vertex4& b,const vertex4& c);
 //---------------------------------
 
 
-int getcode(const Vector4 &v);
-void clip(int& code, Vector4& v, const Vector4 &u);
-void lineclip(Vector4 &a, Vector4 &b);
+int getcode(const Vertex4 &v);
+void clip(int& code, VertexAtrr& va, const VertexAtrr & ua);
+void lineclip(VertexAtrr &a, VertexAtrr &b);
 
 
 
@@ -201,10 +249,10 @@ void setPixel(int x, int y,Color color);
 //       光栅化三角形			  |
 //---------------------------------
 
-void fillTriangle1(Vector4 v0,Vector4 v1,Vector4 v2);
-
+void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2);
+void fillTriangle1(Triangle& tri);
 void setPixel(int x, int y, Color color);
-void setPixel(const vertex4& v);
+void setPixel(const Vertex4& v);
 
 //void fillTriangle2(const Vector4& v0, const Vector4& v1,const Vector4& v2);
 //Vector4 barycentric(const Vector4& v0, const Vector4 &v1, const Vector4& v2, const Vector4& v);
@@ -213,7 +261,7 @@ void setPixel(const vertex4& v);
 //       bresenham画线			  |
 //---------------------------------
 
-void bresenham(const Vector4 &begin, const Vector4& end);
+void bresenham(const VertexAtrr &begin, const VertexAtrr& end);
 void bresenham(int x1, int y1, int x2, int y2);
 
 
@@ -222,16 +270,18 @@ void bresenham(int x1, int y1, int x2, int y2);
 //---------------------------------
 
 float interp(float a, float b, float t);
-void vertexInterp(vertex4 *out, const vertex4 &v0, const vertex4 &v1, float t);
+void vertexInterp(VertexAtrr *out, const VertexAtrr &v0, const VertexAtrr &v1, float t);
 //void Zslerp(const vertexArr *va1, const vertexArr *va2, vertexArr *out, float t);
 
 //---------------------------------
 //       流水线处理 			  |
 //---------------------------------
 
-void IndeicesProcessPipeline(std::vector<vertex4>* outlist, const indeiceBuffer* ib, const std::vector<vertex4>&vb);
+void IndeicesProcessPipeline(std::vector<Vertex4>* outlist, const indeiceBuffer* ib, const std::vector<Vertex4>&vb);
 
-void vertexProcessPipeline(std::vector<vertex4>* outlist, const std::vector<vertex4>& list);
+void IndeicesProcessPipeline(std::vector<Triangle>* outlist, const indeiceBuffer* ib, const std::vector<Vertex4>&vb);
+
+void vertexProcessPipeline(std::vector<Vertex4>* outlist, const std::vector<Vertex4>& list);
 
 
 
@@ -262,3 +312,17 @@ void RsetFVF(int FvF);
 void RsetTex(Texture *tex);
 
 void init_Texture(Texture* texobj, int w, int h);
+
+
+//---------------------------------
+//			Z-buffer			   |
+//---------------------------------
+
+
+
+void setZbuffer(int w,int h);
+void releaseZbuffer();
+void writeZbuffer(int x, int y,float z);
+float getZbuffer(int x, int y);
+
+
