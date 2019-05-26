@@ -2,6 +2,9 @@
 
 char img[(Width + 10)*(Height + 10)*3];
 
+Vector4 Zero(0, 0, 0, 1);
+
+
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
 	 (*out)._w = 1.0f;
 	 (*out)._x = a._y*b._z - a._z*b._y;
@@ -469,9 +472,9 @@ Vector4 operator * (const Vector4 &lrh, const Matrix &rsh) {
 }
 
 
-Vector4& operator *= (Vertex4 &lsh, Matrix &rsh) {
-	lsh = lsh * rsh;
-	return lsh;
+Vector4& operator *= (Vector4 &lrh, const Matrix &rsh) {
+	lrh = lrh * rsh;
+	return lrh;
 
 }
 
@@ -586,6 +589,7 @@ void getNormal( Triangle * tri) {
 	Vector4 u = tri->v1._v - tri->v0._v;
 	Vector4 v = tri->v2._v - tri->v0._v;
 	VecCross(&tri->normal, u, v);
+	VecNormalize(tri->normal, tri->normal);
 }
 
 void getNormal(Vector4 *out, const Vertex4& a, const Vertex4& b, const Vertex4& c) {
@@ -684,7 +688,7 @@ Light initDirectionalLight(const Vector4& direction, const Color &color) {
 	light._Diffuse = color;
 	return light;
 }
-void getSpecuC(Color* out, const Matreial& M, const Light& Light, const Vector4& view, const Vector4& normal) {
+void getSpecuC(Color* out, const Light& Light,const Matreial&M, const Vector4& view, const Vector4& normal) {
 	Vector4 l = -Light.direction;
 	Vector4 h = view + l;
 	VecNormalize(h, h);
@@ -692,15 +696,14 @@ void getSpecuC(Color* out, const Matreial& M, const Light& Light, const Vector4&
 	if (cost > 0)
 		cost = powf(cost, M._power);
 	*out = Light._Specular * cost  ;
-	*out *= M._Specular;
 }
-void getAmbientC(Color* out, const Matreial& M, const Light& Light) {
-	*out = Light._Ambient * M._Ambient;
-}
+//void getAmbientC(Color* out, const Matreial& M, const Light& Light) {
+//	*out = Light._Ambient * M._Ambient;
+//}
 
 void getdiffuseC(Color* out, const Matreial& M, const Light& Light, const Vector4& normal) {
 	float cost = std::max(-Light.direction * normal, 0.0f);
-	*out = cost * Light._Diffuse * M._Diffuse;
+	*out = cost * Light._Diffuse;
 }
 
 
@@ -717,6 +720,23 @@ Light* getLight(int index) {
 void releaseLight() {
 	delete[] Lightarr();
 }
+
+void lightApplyMatrix(Light* light, const Matrix&M) 
+{	
+	light->position *= M;
+	light->direction *= M;
+}
+
+void VertexShader(VertexAtrr &v) {
+	
+	Vector4 view = v._v - Zero;
+	for (int i = 0; getLight(i); i++) {
+		Color ls;
+		getSpecuC(&ls, getLight(i),view,view,v.normal);
+		v.ls += ls;
+	}
+}
+
 //---------------------------------
 //			Z-buffer			  |
 //---------------------------------
@@ -736,6 +756,57 @@ void writeZbuffer(int x, int y, float z) {
 }
 float getZbuffer(int x, int y) {
 	return *(Z_buffer + y*Width+x);
+}
+//---------------------------------
+//			三角网格			  |
+//---------------------------------
+
+
+
+void createTriMesh(std::vector<Triangle>& outlist, const indeiceBuffer* ib, const std::vector<VertexAtrr>&vb, int TriangleNum) {
+	size_t size = TriangleNum * 3;
+	VertexAtrr a, b, c;
+	for (int i = 0; i < size; i += 3) {
+
+		a._v = vb[ib[i]]._v;
+		a._c = vb[ib[i]]._c; a.rhw = 1.0f / a._v._w;
+		a._tu = vb[ib[i]]._tu; a._tv = vb[ib[i]]._tv;
+
+		b._v = vb[ib[i + 1]]._v;
+
+		b._c = vb[ib[i + 1]]._c; b.rhw = 1.0f / b._v._w;
+		b._tu = vb[ib[i + 1]]._tu; b._tv = vb[ib[i + 1]]._tv;
+
+		c._v = vb[ib[i + 2]]._v;
+
+		c._c = vb[ib[i + 2]]._c; c.rhw = 1.0f / c._v._w;
+		c._tu = vb[ib[i + 2]]._tu; c._tv = vb[ib[i + 2]]._tv;
+		outlist.push_back(Triangle(a,b,c));
+	
+		getNormal(&outlist[i / 3]);
+		a.normal = outlist[i / 3].normal;
+		b.normal = outlist[i / 3].normal;
+		c.normal = outlist[i / 3].normal;
+		VertexShader(a);
+		VertexShader(b);
+		VertexShader(c);
+	}
+
+}
+
+//---------------------------------
+//			材质声明			  |
+//---------------------------------
+
+Matreial& currentMatreial() {
+	static Matreial *CM = new Matreial();
+	return *CM;
+}
+
+void setMatreial(Matreial *Mtr) {
+	currentMatreial() = *Mtr;
+	static int *a,*b;
+	a = b;
 }
 
 

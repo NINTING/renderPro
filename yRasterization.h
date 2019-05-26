@@ -72,13 +72,13 @@ struct Vector4
 typedef
 struct VertexAtrr {
 	Vector4 _v;
-	//float _x, _y, _z,_w;
-
-	//vertex attribute
+	
 	Color _c;
 	float rhw;		// 1/z
-	float _tu, _tv;
-	float nx, ny, nz;
+	float _tu, _tv;//texture coord;
+	Vector4 normal;//法向量
+
+	Color ls, ld;//光照
 	VertexAtrr() = default;
 	//VertexAtrr(): _v(Vector4(0, 0, 0, 0)){};
 	
@@ -139,7 +139,7 @@ struct Triangle {
 };
 
 void getNormal(Triangle * tri);
-
+void createTriMesh(vector<Triangle>* outlist, const indeiceBuffer* ib, const vector<VertexAtrr>&vb, int TriangleNum);
 //---------------------------------
 //       光照相关				  |
 //---------------------------------
@@ -180,6 +180,9 @@ void getSpecuC(Color *out, const Matreial& M,const Light &Light,const Vector4& v
 void getAmbientC(Color *out, const Matreial& M, const Light &Light);
 void getdiffuseC(Color *out, const Matreial& M, const Light &Light, const Vector4 &normal);
 
+void VertexShader(VertexAtrr &v);
+
+
 //---------------------------------
 //       矩阵声明				  |
 //---------------------------------
@@ -200,13 +203,16 @@ public:
 	float value[4][4];
 
 };
+
+void lightApplyMatrix(Light* light, const Matrix &M);
+
 Matrix getIdentity();
 
 Matrix operator * (const Matrix &lrh, const Matrix &rsh);
 Matrix& operator *= (Matrix &lrh, const Matrix &rsh);
 
 Vector4 operator * (const Vector4 &lrh, const Matrix &rsh);
-Vector4& operator *= (Vector4 &lrh, Matrix &rsh);
+Vector4& operator *= (Vector4 &lrh,const Matrix &rsh);
 
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b);
 
@@ -222,6 +228,7 @@ void RotationAxis(Matrix&out, const Vector4& axis, float theta);
 void RotationAxisX(Matrix& out, float theta);
 void RotationAxisY(Matrix& out, float theta);
 void RotationAxisZ(Matrix& out, float theta);
+
 
 //投影矩阵
 void PerspectiveMatrix(Matrix * Pm);		//不好使

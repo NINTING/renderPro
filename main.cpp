@@ -142,12 +142,13 @@ void release(t * arr) {
 
 
 void getTranMatrix() {
-	tranMatrix = WorldMatr * ViewMatr * ProjectMatr;
+	tranMatrix = WorldMatr * ViewMatr;
 }
 
 void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, const vector<VertexAtrr>&vb,int TriangleNum) {
 
 	getTranMatrix();
+	//createTriMesh()
 	size_t size = TriangleNum*3;
 	
 	VertexAtrr a, b, c;
@@ -164,13 +165,18 @@ void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, 
 		b._c = vb[ib[i + 1]]._c; b.rhw = 1.0f/b._v._w;
 		b._tu = vb[ib[i+1]]._tu; b._tv = vb[ib[i+1]]._tv;
 		
-		MatrixApply(&c._v, vb[ib[i + 2]]._v,tranMatrix);
+		MatrixApply(&c._v, vb[ib[i + 2]]._v, tranMatrix);
 		
 		c._c = vb[ib[i + 2]]._c; c.rhw =1.0f/c._v._w;
 		c._tu = vb[ib[i+2]]._tu; c._tv = vb[ib[i+2]]._tv;
-		
+
 		//±³ÃæÏûÒþ
-		if (backCull(a._v, b._v, c._v)) {
+		Triangle tri(a, b, c);
+		getNormal(&tri);
+		if (backCull(tri)) {
+			VertexShader(a);
+			VertexShader(b);
+			VertexShader(c);
 			outlist->push_back(Triangle(a,b,c));
 
 		}
