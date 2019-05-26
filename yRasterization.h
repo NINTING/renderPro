@@ -347,16 +347,18 @@ struct Texture {
 	Texture(int w, int h, float* t) :width(w), height(h), tex(t) {};
 	Texture(const Texture&t) :width(t.width), height(t.height), tex(t.tex) {};
 	Texture& operator = (const Texture& rsh);
+	
 
 };
 Texture& PresentTex();
+
 void getTexPixel(const Texture *Texobj, Color* c, float x, float y);
 
 void Texture_set(Texture *texobj, void *texImg, int w, int h, int pitch);
 
 void RsetFVF(int FvF);
 void RsetTex(Texture *tex);
-
+void releasePreTex();
 void init_Texture(Texture* texobj, int w, int h);
 
 

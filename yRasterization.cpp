@@ -28,6 +28,11 @@ Texture& Texture::operator = (const Texture& rsh) {
 	return *this;
 }
 
+void releasePreTex() {
+	delete[] PresentTex().tex;
+	delete &PresentTex();
+}
+
 
 	//当前的纹理
 void getTexPixel(const Texture &Texobj ,Color* c,float x,float y) {
@@ -101,7 +106,7 @@ Color operator *(float t, const Color& a) {
 	return a * t;
 }
 Color operator *(const Color& a, const Color& b) {
-	return Color(a._r * b._r, a._g * b._g, a._r * b._r);
+	return Color(a._r * b._r, a._g * b._g, a._b * b._b);
 }
 Color& operator *=(Color& a, const Color b) {
 	return a = a * b;

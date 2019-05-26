@@ -33,7 +33,7 @@ void init() {
 void setup() {
 	//æÿ’Û…Ë÷√
 	init();
-	memset(img, 255, sizeof(img));
+	memset(img,0, sizeof(img));
 	Texture tex;
 	init_Texture(&tex, 255, 255);
 	//RsetFVF(FVFtexture);
@@ -56,6 +56,8 @@ void setup() {
 	Light direL = initDirectionalLight(direction, Lc);
 	setLight(0, &direL);
 	LCount++;
+
+
 	//≤ƒ÷ 
 	Color whiteM(1, 1, 1);
 	Matreial matr1(whiteM,whiteM,whiteM,1.0f);
@@ -137,6 +139,8 @@ void MatrixApply(Vector4 *out,const Vector4 &v,const Matrix &m) {
 void applyForIndeices(int** varr, size_t size) {
 	(*varr) = new int[size];
 }
+
+
 
 template<class t>
 void release(t * arr) {
@@ -320,7 +324,7 @@ void Cubetest() {
 	IndeicesProcessPipeline(&outlist, ib, list, 12);
 	//wireFrame(outlist);
 	fillMesh(outlist);
-		release(ib);
+	release(ib);
 		//fillTriangle2(a, b, c);
 		//wareFrame(list);
 	draw("color7.ppm");
@@ -431,7 +435,7 @@ void releaseall() {
 	releaseZbuffer();
 	releaseLight();
 	releaseCM();
-	release(PresentTex().tex);
+	releasePreTex();
 }
 
 
