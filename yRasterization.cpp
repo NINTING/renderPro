@@ -17,16 +17,28 @@ void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
 //---------------------------------
 
 int Presentfvf;		//当前的顶点格式
-Texture *PresentTex;	//当前的纹理
-void getTexPixel(const Texture *Texobj ,Color* c,float x,float y) {
-	x *= Texobj->width - 1;
-	y *= Texobj->height - 1;
+Texture& PresentTex() {
+	static Texture* PresentTex = new Texture();
+	return *PresentTex;
+}
+
+Texture& Texture::operator = (const Texture& rsh) {
+	width = rsh.width; height = rsh.height;
+	tex = rsh.tex;
+	return *this;
+}
+
+
+	//当前的纹理
+void getTexPixel(const Texture &Texobj ,Color* c,float x,float y) {
+	x *= Texobj.width - 1;
+	y *= Texobj.height - 1;
 	int row= y + 0.5, col = x + 0.5;
-	if (row >= Texobj->height) row = Texobj->height-1;
+	if (row >= Texobj.height) row = Texobj.height-1;
 	if (row < 0)row =0;
-	if (col >= Texobj->width)  col =  Texobj->width-1; 
+	if (col >= Texobj.width)  col =  Texobj.width-1; 
 	if (col < 0)col = 0;
-	float *p = Texobj->tex + (row *Texobj->width  + col)*3;
+	float *p = Texobj.tex + (row *Texobj.width  + col)*3;
 	c->_r = p[0], c->_g = p[1], c->_b = p[2];
 }
 
@@ -53,7 +65,10 @@ void RsetFVF(int FvF) {
 	Presentfvf |= FvF;
 }
 void RsetTex(Texture *tex) {
-	PresentTex = tex;
+	delete [] PresentTex().tex;
+	
+	PresentTex() = *tex;
+	PresentTex().tex;
 }
 //---------------------------------
 //			color 运算			   |
@@ -65,9 +80,15 @@ Color& operator +=(Color& a, const Color&b) {
 	a = a + b;
 	return a;
 }
-Color operator /(const Color& a, const Color&b);
 
-Color& operator /=(Color& a, const Color&b);
+Color operator -(const Color& a, const Color& b) {
+	return Color(a._r - b._r, a._g - b._g, a._b - b._b);
+}
+Color& operator -=(Color& a, const Color& b) {
+	a = a - b;
+	return a;
+}
+
 Color operator *(const Color& a, float t) {
 	return Color(a._r*t, a._g *t, a._b*t);
 }
@@ -85,6 +106,15 @@ Color operator *(const Color& a, const Color& b) {
 Color& operator *=(Color& a, const Color b) {
 	return a = a * b;
 }
+
+Color operator /(const Color& a, float t) {
+	return Color(a._r / t, a._g / t, a._b / t);
+
+}
+Color& operator /=(Color& a, float t) {
+	return a = a / t;
+}
+
 
 //---------------------------------
 //bresenham 直线画法			   |
@@ -131,9 +161,18 @@ void bresenham(int x1,int y1, int x2,int y2) {
 //扫描线        光栅化三角形	  |
 //---------------------------------
 
+void checkColor(Color& c) {
+	float maxc = std::max(c._r, std::max(c._b, c._g));
+	if (maxc > 1.0f)
+		c /= maxc;
+	
+}
+
 void setPixel(int x, int y, Color color) {
 	char *p = img + (y*Width + x)*3;
 	
+	checkColor(color);
+
 	p[0] = (char)(color._r*255+0.5) ,p[1] = (char)(color._g*255+0.5) , p[2] = (char)(color._b*255+0.5);
 
 }
@@ -172,7 +211,8 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 		
 		//lv._y = rv._y = y;
 		if (lv._v._x > rv._v._x)std::swap(lv, rv);
-		//lineclip(lv, rv);
+		
+		lineclip(lv, rv);
 		
 		float overSubx = 1 / (rv._v._x - lv._v._x);
 		if (rv._v._x - lv._v._x == 0)overSubx = 0.0f;
@@ -183,12 +223,17 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 		float rstep = 0;
 		float ustep = 0;
 		float vstep = 0;
-		//float zbstep = (rv._v._z - lv._v._z) *overSubx;;
+		//float zbstep = (rv._v._z - lv._v._z) *overSubx;
+
+		
+		Color Coverz, cStep;		//深度矫正颜色，步长
 		if (Presentfvf & FVFcolor) {
 			//颜色插值
-			bstep = (rv._c._b - lv._c._b)*overSubx;
-			gstep = (rv._c._g - lv._c._g)*overSubx;
-			rstep = (rv._c._r - lv._c._r)*overSubx;
+			cStep = (rv._c - lv._c) * overSubx;
+			/*cStep._b = (rv._c._b - lv._c._b)*overSubx;
+			cStep._g = (rv._c._g - lv._c._g)*overSubx;
+			cStep._r = (rv._c._r - lv._c._r)*overSubx;*/
+			Coverz = lv._c;
 		}
 		else if (Presentfvf&FVFtexture)
 		{
@@ -196,20 +241,33 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 			vstep = (rv._tv - lv._tv)*overSubx;
 
 			//getTexPixel()
-		}
-		float boverz, goverz, roverz, overz,uoverz,voverz;
+		}	
+		Color Ldoverz(lv.ld),Lsoverz(lv.ls);
+		Color LdStep((rv.ld - lv.ld)*overSubx), LsStep ((rv.ls-lv.ls)*overSubx);
+
+
+		float overz,uoverz,voverz;
 		int x;
 		float z;
-		for (x = lv._v._x+0.5f,z = lv._v._z,boverz = lv._c._b, goverz = lv._c._g, roverz = lv._c._r,overz = lv.rhw,uoverz = lv._tu,voverz = lv._tv;
+		for (x = lv._v._x+0.5f,z = lv._v._z,overz = lv.rhw,uoverz = lv._tu,voverz = lv._tv;
 			x <= rv._v._x;
-			x++,boverz+=bstep,goverz+=gstep,roverz+=rstep,overz+=zstep,uoverz+=ustep,voverz+=vstep) {
+			x++,overz+=zstep,Ldoverz+=LdStep,Lsoverz+=LsStep) {
 			Color c(1,1,1);
 			float zz = 1.0f / overz;
 			
-			if(Presentfvf & FVFcolor)
-				c._r = roverz*zz,c._g = goverz*zz,c._b =  boverz*zz;
-			if (Presentfvf&FVFtexture) 
-				getTexPixel(PresentTex,&c,uoverz*zz,voverz*zz);
+			if (Presentfvf & FVFcolor) {
+				c._r = Coverz._r * zz, c._g = Coverz._b * zz, c._b = Coverz._b * zz;
+				Coverz += cStep;
+			}
+			if (Presentfvf & FVFtexture) {
+				getTexPixel(PresentTex(), &c, uoverz * zz, voverz * zz);
+				uoverz += ustep, voverz += vstep;
+			}
+			//ground着色
+			//ambient材质==diffuse材质==物体纹理颜色
+			Color dc = Ldoverz * zz;
+			c = c * (Ldoverz * zz)+ 0.6 * c * (Lsoverz*zz);
+			
 			if (overz > getZbuffer(x, y)) {
 				setPixel(x, y, c);
 				writeZbuffer(x,y,overz);
@@ -230,11 +288,11 @@ void vertexInterp(VertexAtrr *out,const VertexAtrr &v0, const VertexAtrr &v1,flo
 
 	
 	out->rhw   = interp(BoneOverZ, ToneOverZ, t);
-	out->_c._b = interp(v0._c._b*BoneOverZ, v1._c._b*ToneOverZ, t);
-	out->_c._r = interp(v0._c._r*BoneOverZ, v1._c._r*ToneOverZ, t);
-	out->_c._g = interp(v0._c._g*BoneOverZ, v1._c._g*ToneOverZ, t);
-	out->_tu   = interp(v0._tu*BoneOverZ, v1._tu*ToneOverZ, t);
-	out->_tv   = interp(v0._tv*BoneOverZ, v1._tv*ToneOverZ, t);
+	out->_c    = ColorInterp(v0._c,v1._c,t);
+	out->_tu   = interp(v0._tu, v1._tu, t);
+	out->_tv   = interp(v0._tv, v1._tv, t);
+	out->ld    = ColorInterp(v0.ld, v1.ld, t);
+	out->ls    = ColorInterp(v0.ls, v1.ls, t);
 }
 
 ////---------------------------------
@@ -333,7 +391,12 @@ void lineclip(VertexAtrr &a, VertexAtrr &b) {
 //---------------------------------
 //       向量相关函数			  |
 //---------------------------------
-
+void AttrMulRhw(VertexAtrr& out, const VertexAtrr& in, float rhw) {
+	out._c = in._c * rhw;
+	out._tu = in._tu * rhw;
+	out._tv = in._tv * rhw;
+	out.ld *= rhw; out.ls *= rhw;
+}
 
 Vector4 operator - (const Vector4& lsh, const Vector4& rsh) {
 	return Vector4(lsh._x - rsh._x, lsh._y - rsh._y, lsh._z - rsh._z,0);
@@ -631,6 +694,15 @@ float interp(float a,float b,float t) {
 	return (b - a)*t + a;
 
 }
+Color ColorInterp(const Color& c0, const Color& c1, float t) {
+	Color out;
+	out._b = interp(c0._b, c1._b, t);
+	out._r = interp(c0._r, c1._r, t);
+	out._g = interp(c0._g ,c1._g, t);
+	return out;
+}
+
+
 
 //---------------------------------
 //      文件处理				  |
@@ -727,14 +799,22 @@ void lightApplyMatrix(Light* light, const Matrix&M)
 	light->direction *= M;
 }
 
-void VertexShader(VertexAtrr &v) {
-	
-	Vector4 view = v._v - Zero;
-	for (int i = 0; getLight(i); i++) {
-		Color ls;
-		getSpecuC(&ls, getLight(i),view,view,v.normal);
+void VertexShader(VertexAtrr &v,int lightNum) {
+	v.ld = Black;
+	v.ls = Black;
+	Vector4 view = -v._v;
+	VecNormalize(view, view);
+	for (int i = 0;i<lightNum ; i++) {
+		Color ls,ld;
+		getSpecuC(&ls, *getLight(i),currentMatreial(),view,v.normal);
+		getdiffuseC(&ld, currentMatreial(), *getLight(i), v.normal); 
+		if (getLight(i)->type & (LightSpot | LightPoint)) {
+			//衰减计算
+		}
 		v.ls += ls;
+		v.ld += ld;
 	}
+	v.ld += getLight(0)->_Ambient;
 }
 
 //---------------------------------
@@ -761,38 +841,13 @@ float getZbuffer(int x, int y) {
 //			三角网格			  |
 //---------------------------------
 
-
-
-void createTriMesh(std::vector<Triangle>& outlist, const indeiceBuffer* ib, const std::vector<VertexAtrr>&vb, int TriangleNum) {
-	size_t size = TriangleNum * 3;
-	VertexAtrr a, b, c;
-	for (int i = 0; i < size; i += 3) {
-
-		a._v = vb[ib[i]]._v;
-		a._c = vb[ib[i]]._c; a.rhw = 1.0f / a._v._w;
-		a._tu = vb[ib[i]]._tu; a._tv = vb[ib[i]]._tv;
-
-		b._v = vb[ib[i + 1]]._v;
-
-		b._c = vb[ib[i + 1]]._c; b.rhw = 1.0f / b._v._w;
-		b._tu = vb[ib[i + 1]]._tu; b._tv = vb[ib[i + 1]]._tv;
-
-		c._v = vb[ib[i + 2]]._v;
-
-		c._c = vb[ib[i + 2]]._c; c.rhw = 1.0f / c._v._w;
-		c._tu = vb[ib[i + 2]]._tu; c._tv = vb[ib[i + 2]]._tv;
-		outlist.push_back(Triangle(a,b,c));
-	
-		getNormal(&outlist[i / 3]);
-		a.normal = outlist[i / 3].normal;
-		b.normal = outlist[i / 3].normal;
-		c.normal = outlist[i / 3].normal;
-		VertexShader(a);
-		VertexShader(b);
-		VertexShader(c);
-	}
-
+void setTriNormal(Triangle& tri, const Vector4& Normal) {
+	tri.v0.normal = Normal;
+	tri.v1.normal = Normal;
+	tri.v2.normal = Normal;
 }
+
+
 
 //---------------------------------
 //			材质声明			  |
@@ -805,8 +860,9 @@ Matreial& currentMatreial() {
 
 void setMatreial(Matreial *Mtr) {
 	currentMatreial() = *Mtr;
-	static int *a,*b;
-	a = b;
 }
 
+void releaseCM() {
+	delete &currentMatreial();
+}
 

@@ -6,9 +6,9 @@
 
 
 using namespace std;
+void releaseall();
 
-
-
+int LCount;
 
 Matrix tranMatrix;
 Matrix ProjectMatr, ViewMatr, WorldMatr;
@@ -39,31 +39,40 @@ void setup() {
 	//RsetFVF(FVFtexture);
 	RsetFVF(FVFtexture);
 	RsetTex(&tex);
+	PresentTex();
 	Matrix Vm, Pm;
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(0.0f, 0.0f, -5.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	Vector4 at(3.0f, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
 	viewMatrix(Vm, at, view, up);
 	setMatrix(TS_VIEW, &Vm);
 	setMatrix(TS_PROJECTION, &Pm);
-
+	
 	//Zbuffer初始化
 	setZbuffer(Width, Height);
-
+	
 	//光照
-	Vector4 direction(1, 0, 0, 0);
+	Vector4 direction(0, 1, 1, 0);
 	Color Lc(1, 1, 1);
 	Light direL = initDirectionalLight(direction, Lc);
 	setLight(0, &direL);
+	LCount++;
+	//材质
+	Color whiteM(1, 1, 1);
+	Matreial matr1(whiteM,whiteM,whiteM,1.0f);
+	setMatreial(&matr1);
+
 }
 
 void fillMesh(std::vector<VertexAtrr>& list) {
-	for (int i = 0; i < list.size(); i+=3) {
+	size_t size =list.size();
+	for (int i = 0; i < size; i+=3) {
 		fillTriangle1(list[i], list[i+1], list[i+2]);
 	}
 }
 
 void fillMesh(std::vector<Triangle>& list) {
-	for (int i = 0; i < list.size(); i ++) {
+	size_t size = list.size();
+	for (int i = 0; i < size; i ++) {
 		fillTriangle1(list[i]);
 	}
 }
@@ -152,32 +161,45 @@ void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, 
 	size_t size = TriangleNum*3;
 	
 	VertexAtrr a, b, c;
+	
+	for (int i = 0; i < LCount; i++) {
+		MatrixApply(&(getLight(i)->direction), getLight(i)->direction, ViewMatr);
+	}
 
 	for (int i = 0; i <size; i += 3) {
 		
 		MatrixApply(&a._v, vb[ib[i]]._v, tranMatrix);
-		
-		a._c = vb[ib[i]]._c; a.rhw = 1.0f/a._v._w;
-		a._tu = vb[ib[i]]._tu; a._tv = vb[ib[i]]._tv;
 	
 		MatrixApply(&b._v, vb[ib[i + 1]]._v, tranMatrix);
 
-		b._c = vb[ib[i + 1]]._c; b.rhw = 1.0f/b._v._w;
-		b._tu = vb[ib[i+1]]._tu; b._tv = vb[ib[i+1]]._tv;
 		
 		MatrixApply(&c._v, vb[ib[i + 2]]._v, tranMatrix);
-		
-		c._c = vb[ib[i + 2]]._c; c.rhw =1.0f/c._v._w;
-		c._tu = vb[ib[i+2]]._tu; c._tv = vb[ib[i+2]]._tv;
+	
 
 		//背面消隐
 		Triangle tri(a, b, c);
 		getNormal(&tri);
+		setTriNormal(tri,tri.normal);
+		
+		float rhw;
 		if (backCull(tri)) {
-			VertexShader(a);
-			VertexShader(b);
-			VertexShader(c);
-			outlist->push_back(Triangle(a,b,c));
+			VertexShader(tri.v0,LCount);
+			VertexShader(tri.v1,LCount);
+			VertexShader(tri.v2,LCount);
+
+			MatrixApply(&tri.v0._v , tri.v0._v, ProjectMatr);
+			tri.v0.rhw = 1.0f / tri.v0._v._w;
+			AttrMulRhw(tri.v0, vb[ib[i]], tri.v0.rhw);
+			
+			MatrixApply(&tri.v1._v, tri.v1._v, ProjectMatr);
+			tri.v1.rhw = 1.0f / tri.v1._v._w;
+			AttrMulRhw(tri.v1, vb[ib[i+1]], tri.v1.rhw);
+			
+			MatrixApply(&tri.v2._v, tri.v2._v, ProjectMatr);
+			tri.v2.rhw = 1.0f / tri.v1._v._w;
+			AttrMulRhw(tri.v2, vb[ib[i+2]], tri.v2.rhw);
+			
+			outlist->push_back(tri);
 
 		}
 	}
@@ -185,7 +207,7 @@ void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, 
 
 	size = outlist->size();
 	for (int i = 0; i < size; i++) {
-		toScreen(&((*outlist)[i].v0._v));
+		toScreen(&(*outlist)[i].v0._v);
 		toScreen(&(*outlist)[i].v1._v);
 		toScreen(&(*outlist)[i].v2._v);
 	}
@@ -391,19 +413,26 @@ void LightCube() {
 	ib[30] = 7, ib[31] = 6, ib[32] = 3;
 	ib[33] = 6, ib[34] = 2, ib[35] = 3;
 	vector<Triangle> triArr;
-	createTriMesh();
+
 	vector<Triangle> outlist;
 	IndeicesProcessPipeline(&outlist, ib, list, 12);
 	//wireFrame(outlist);
 	fillMesh(outlist);
 	release(ib);
-	releaseZbuffer();
-	releaseLight();
+	releaseall();
 	//fillTriangle2(a, b, c);
 	//wareFrame(list);
 
 }
 
+
+void releaseall() {
+	
+	releaseZbuffer();
+	releaseLight();
+	releaseCM();
+	release(PresentTex().tex);
+}
 
 
 
@@ -414,7 +443,7 @@ int main() {
 	
 	//Cubetest();
 	
-	textureCube();
+	LightCube();
 	/*Matrix Tm;
 	MatrixTranslation(Tm, 0.5f, 0.0f, 2.0f);
 	setMatrix(TS_WORLD, &Tm);

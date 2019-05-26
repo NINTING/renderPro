@@ -38,11 +38,17 @@ struct Color
 };
 Color operator +(const Color& a, const Color&b);
 Color& operator +=(Color& a, const Color&b);
-Color operator /(const Color& a, const Color&b);
-Color& operator /=(Color& a, const Color&b);
+
+Color operator -(const Color& a, const Color& b);
+Color& operator -=(Color& a, const Color& b);
+
+Color operator /(const Color& a, float t);
+Color& operator /=(Color& a, float t);
+
 Color operator *(const Color& a, float t);
 Color operator *(float t,const Color& a);
 Color& operator *=(Color& a, float t);
+
 Color operator *(const Color& a,const Color &b);
 Color& operator *=(Color& a, const Color b );
 
@@ -85,9 +91,10 @@ struct VertexAtrr {
 	VertexAtrr(float x, float y, float z, float w) :_v(Vector4(x,y,z,w)) { _c = White; };
 	VertexAtrr(float x, float y, float z, float w, Color c) :_v(Vector4(x, y, z, w)), _c(c) { };
 	VertexAtrr(float x, float y, float z, float w, Color c, float u, float v): _v(Vector4(x, y, z, w)), _c(c), _tu(u), _tv(v) { };
-	VertexAtrr(float x, float y, float z, float w,float u,float v) :_v(Vector4(x, y, z, w)),_tu(u),_tv(v) { _c = White; };
+	VertexAtrr(float x, float y, float z, float w, float u, float v) :_v(Vector4(x, y, z, w)), _tu(u), _tv(v) { _c = White; };
 
 };
+void AttrMulRhw(VertexAtrr&out,const VertexAtrr& in,float rhw);
 
 Vector4 operator - (const Vector4& lsh, const Vector4& rsh);
 Vector4 operator - (const Vector4& rsh);
@@ -119,8 +126,11 @@ struct Matreial {
 		_Ambient(Ambient),_Specular(Specular),_Diffuse(Diffuse),_power(power){}
 
 };
+Matreial& currentMatreial();
 
-void setMatreial(Matreial *Mtr);
+void setMatreial(Matreial* Mtr);
+
+void releaseCM();
 
 //---------------------------------
 //       三角类					  |
@@ -139,7 +149,8 @@ struct Triangle {
 };
 
 void getNormal(Triangle * tri);
-void createTriMesh(vector<Triangle>* outlist, const indeiceBuffer* ib, const vector<VertexAtrr>&vb, int TriangleNum);
+void setTriNormal(Triangle& tri,const Vector4& Normal);
+//void createTriMesh(vector<Triangle>* outlist, const indeiceBuffer* ib, const vector<VertexAtrr>&vb, int TriangleNum);
 //---------------------------------
 //       光照相关				  |
 //---------------------------------
@@ -180,7 +191,7 @@ void getSpecuC(Color *out, const Matreial& M,const Light &Light,const Vector4& v
 void getAmbientC(Color *out, const Matreial& M, const Light &Light);
 void getdiffuseC(Color *out, const Matreial& M, const Light &Light, const Vector4 &normal);
 
-void VertexShader(VertexAtrr &v);
+void VertexShader(VertexAtrr &v,int lightNum);
 
 
 //---------------------------------
@@ -294,9 +305,11 @@ void bresenham(int x1, int y1, int x2, int y2);
 //---------------------------------
 //       线性插值				  |
 //---------------------------------
-
+Color ColorInterp(const Color& c0, const Color& c1, float t);
 float interp(float a, float b, float t);
 void vertexInterp(VertexAtrr *out, const VertexAtrr &v0, const VertexAtrr &v1, float t);
+
+
 //void Zslerp(const vertexArr *va1, const vertexArr *va2, vertexArr *out, float t);
 
 //---------------------------------
@@ -326,10 +339,17 @@ void draw(const char *name);
 struct Texture {
 	int width, height;
 	float *tex;
-	~Texture() {
-		delete[]tex;
-	}
+	
+	Texture() {
+		width = height = 0;
+		tex = 0;
+	};
+	Texture(int w, int h, float* t) :width(w), height(h), tex(t) {};
+	Texture(const Texture&t) :width(t.width), height(t.height), tex(t.tex) {};
+	Texture& operator = (const Texture& rsh);
+
 };
+Texture& PresentTex();
 void getTexPixel(const Texture *Texobj, Color* c, float x, float y);
 
 void Texture_set(Texture *texobj, void *texImg, int w, int h, int pitch);
