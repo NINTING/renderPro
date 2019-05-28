@@ -33,7 +33,9 @@ extern char img[(Width + 10)*(Height + 10) * 3];
 struct Color
 {
 	float _r, _g, _b;
-	Color() = default;
+	Color() {
+		_r = 1.0f; _g = 1.0f; _b = 1.0f;
+	}
 	Color(float r, float g, float b) :_r(r), _g(g), _b(b) {}
 };
 Color operator +(const Color& a, const Color&b);

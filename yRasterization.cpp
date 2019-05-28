@@ -36,15 +36,35 @@ void releasePreTex() {
 
 	//当前的纹理
 void getTexPixel(const Texture &Texobj ,Color* c,float x,float y) {
+	if (x <= 0.0f)x = 0.0f;
+	if (x > 1.0f)x = 1.0f;
+	if (y <= 0.0f)y = 0.0f;
+	if (y > 1.0f)y = 1.0f;
+
 	x *= Texobj.width - 1;
 	y *= Texobj.height - 1;
-	int row= y + 0.5, col = x + 0.5;
-	if (row >= Texobj.height) row = Texobj.height-1;
-	if (row < 0)row =0;
-	if (col >= Texobj.width)  col =  Texobj.width-1; 
-	if (col < 0)col = 0;
-	float *p = Texobj.tex + (row *Texobj.width  + col)*3;
-	c->_r = p[0], c->_g = p[1], c->_b = p[2];
+	int lx = floorf(x), rx = ceilf(x);
+	int ty = floorf(y), by = ceilf(y);
+
+
+
+	float lt = (x - lx) * (y - ty), rt = (rx - x) * (y - ty);
+	float lb = (x - lx) * (by - y), rb = (rx - x) * (by - y);
+	float* p;
+	Color c1, c2, c3, c4;
+	p = Texobj.tex + (lx *Texobj.width  + ty)*3;
+	c1._r *= p[0], c1._g *= p[1], c1._b *= p[2];
+
+	 p = Texobj.tex + (rx * Texobj.width + ty) * 3;
+	c2._r *= p[0], c2._g *= p[1], c2._b *= p[2];
+	
+	 p = Texobj.tex + (lx * Texobj.width + by) * 3;
+	c3._r *= p[0], c3._g *= p[1], c3._b *= p[2];
+	
+	 p = Texobj.tex + (rx * Texobj.width + by) * 3;
+	c4._r *= p[0], c4._g *= p[1], c4._b *= p[2];
+	*c = c1 + c2 + c3 + c4;
+	return;
 }
 
 
@@ -196,10 +216,10 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 	if (v1._v._y > v2._v._y) std::swap(v1, v2);
 
 	//scan flat-top triangel
-	for (int y = v0._v._y+0.5; y <= v2._v._y; y++) {
+	for (int y = ceilf(v0._v._y); y <= v2._v._y; y++) {
 		//上下插值
 		float d1,d2;
-
+		
 		//左右端点和插值
 		VertexAtrr lv, rv;
 		d2 = (float)(y - v0._v._y) / (float)(v2._v._y - v0._v._y + 1);
@@ -429,9 +449,9 @@ Vector4& operator += (Vector4& lsh, const Vector4& rsh) {
 void VecNormalize(Vector4 & out,const Vector4& in) {
 	float x = in._x, y = in._y, z = in._z;
 	
-	float k = sqrt(x * x + y * y + z * z);
+	float k =1.0/ sqrt(x * x + y * y + z * z);
 
-	out._x = in._x / k, out._y = in._y / k, out._z = in._z / k;
+	out._x = in._x * k, out._y = in._y * k, out._z = in._z * k;
 }
 
 float operator * (const Vector4& lsh, const Vector4& rsh) {
@@ -613,7 +633,7 @@ void viewMatrix(Matrix&out,const Vector4& at,const Vector4& view,const Vector4& 
 	VecCross(&X, up, Z);
 	VecNormalize(X, X);
 	VecCross(&Y, Z, X);
-	VecNormalize(Y, Y);
+
 	
 	out(0, 0) = X._x;
 	out(1, 0) = X._y;
@@ -760,7 +780,7 @@ Light initDirectionalLight(const Vector4& direction, const Color &color) {
 	
 	light.direction = direction;
 
-	light._Ambient = 0.4*color;
+	light._Ambient = 0.1*color;
 	light._Specular = color;
 	light._Diffuse = color;
 	return light;

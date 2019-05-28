@@ -42,7 +42,7 @@ void setup() {
 	PresentTex();
 	Matrix Vm, Pm;
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(3.0f, 3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1, 0, 0);
+	Vector4 at(-3.0f, 0.0f, 1.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0 , 0);
 	viewMatrix(Vm, at, view, up);
 	setMatrix(TS_VIEW, &Vm);
 	setMatrix(TS_PROJECTION, &Pm);
@@ -51,7 +51,7 @@ void setup() {
 	setZbuffer(Width, Height);
 	
 	//π‚’’
-	Vector4 direction(0, 1, 1, 0);
+	Vector4 direction(1, 1, 0, 0);
 	Color Lc(1, 1, 1);
 	Light direL = initDirectionalLight(direction, Lc);
 	setLight(0, &direL);
@@ -169,17 +169,15 @@ void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, 
 	for (int i = 0; i < LCount; i++) {
 		MatrixApply(&(getLight(i)->direction), getLight(i)->direction, ViewMatr);
 	}
-
+		
 	for (int i = 0; i <size; i += 3) {
 		
 		MatrixApply(&a._v, vb[ib[i]]._v, tranMatrix);
-	
+		
 		MatrixApply(&b._v, vb[ib[i + 1]]._v, tranMatrix);
-
 		
 		MatrixApply(&c._v, vb[ib[i + 2]]._v, tranMatrix);
 	
-
 		//±≥√Êœ˚“˛
 		Triangle tri(a, b, c);
 		getNormal(&tri);
@@ -453,7 +451,7 @@ int main() {
 	setMatrix(TS_WORLD, &Tm);
 	textureCube();*/
 	
-	draw("color3.ppm");
+	draw("color5.ppm");
 	//triangleTest();
 	//getTexture("1.jpg");
 
