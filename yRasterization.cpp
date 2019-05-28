@@ -6,7 +6,7 @@ Vector4 Zero(0, 0, 0, 1);
 
 
 void VecCross(Vector4 *out,const Vector4& a, const Vector4& b) {
-	 (*out)._w = 1.0f;
+	 (*out)._w = 0.0f;
 	 (*out)._x = a._y*b._z - a._z*b._y;
 	 (*out)._y = a._z*b._x - a._x*b._z;
 	 (*out)._z = a._x*b._y - a._y*b._x;
@@ -186,6 +186,42 @@ void bresenham(int x1,int y1, int x2,int y2) {
 //扫描线        光栅化三角形	  |
 //---------------------------------
 
+void wireFrame(std::vector<Triangle> list) {
+	for (int i = 0; i < list.size(); i++) {
+		lineclip(list[i].v0, list[i].v1);
+		bresenham(list[i].v0, list[i].v1);
+
+		lineclip(list[i].v0, list[i].v2);
+		bresenham(list[i].v0, list[i].v2);
+
+		lineclip(list[i].v1, list[i].v2);
+		bresenham(list[i].v1, list[i].v2);
+	}
+}
+
+
+void fillMesh(std::vector<VertexAtrr>& list) {
+	size_t size = list.size();
+	for (int i = 0; i < size; i += 3) {
+		fillTriangle1(list[i], list[i + 1], list[i + 2]);
+	}
+}
+
+void fillMesh(std::vector<Triangle>& list) {
+	size_t size = list.size();
+	if (Presentfvf == FVFwireframe)
+		wireFrame(list);
+	else
+	for (int i = 0; i < size; i++) {
+		fillTriangle1(list[i]);
+	}
+}
+
+
+
+
+
+
 void checkColor(Color& c) {
 	float maxc = std::max(c._r, std::max(c._b, c._g));
 	if (maxc > 1.0f)
@@ -215,6 +251,8 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 	if (v0._v._y > v2._v._y)std::swap(v0, v2);
 	if (v1._v._y > v2._v._y) std::swap(v1, v2);
 
+
+	
 	//scan flat-top triangel
 	for (int y = ceilf(v0._v._y); y <= v2._v._y; y++) {
 		//上下插值
@@ -222,11 +260,11 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 		
 		//左右端点和插值
 		VertexAtrr lv, rv;
-		d2 = (float)(y - v0._v._y) / (float)(v2._v._y - v0._v._y + 1);
+		d2 = (float)(y - v0._v._y) / (float)(v2._v._y - v0._v._y+1);
 		vertexInterp(&rv, v0, v2, d2);
 
 		if (y < v1._v._y) {
-			d1 = (float)(y - v0._v._y) / (float)(v1._v._y - v0._v._y + 1);
+			d1 = (float)(y - v0._v._y) / (float)(v1._v._y - v0._v._y +1);
 			vertexInterp(&lv, v0, v1, d1);
 		}
 		else {
@@ -234,18 +272,18 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 			vertexInterp(&lv, v1, v2, d1);
 		}
 		
-		//lv._y = rv._y = y;
+		lv._v._y = rv._v._y = y;
 		if (lv._v._x > rv._v._x)std::swap(lv, rv);
 		
 		lineclip(lv, rv);
 		
 		float overSubx = 1 / (rv._v._x - lv._v._x);
-		if (rv._v._x - lv._v._x == 0)overSubx = 0.0f;
-
+		if (rv._v._x - lv._v._x == 0) {
+			overSubx = 0.0f;
+			continue;
+		}
 		float zstep = (rv.rhw - lv.rhw) *overSubx;
-		float bstep = 0;
-		float gstep = 0;
-		float rstep = 0;
+
 		float ustep = 0;
 		float vstep = 0;
 		//float zbstep = (rv._v._z - lv._v._z) *overSubx;
@@ -285,7 +323,9 @@ void fillTriangle1(VertexAtrr v0, VertexAtrr v1, VertexAtrr v2) {			//scan line	
 				Coverz += cStep;
 			}
 			if (Presentfvf & FVFtexture) {
-				getTexPixel(PresentTex(), &c, uoverz * zz, voverz * zz);
+				float u = uoverz * zz;
+				float v = voverz * zz;
+				getTexPixel(PresentTex(), &c, u,v);
 				uoverz += ustep, voverz += vstep;
 			}
 			//ground着色
@@ -780,7 +820,7 @@ Light initDirectionalLight(const Vector4& direction, const Color &color) {
 	
 	light.direction = direction;
 
-	light._Ambient = 0.1*color;
+	light._Ambient = 0.2*color;
 	light._Specular = color;
 	light._Diffuse = color;
 	return light;

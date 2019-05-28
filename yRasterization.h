@@ -293,6 +293,8 @@ void fillTriangle1(Triangle& tri);
 void setPixel(int x, int y, Color color);
 void setPixel(const Vertex4& v);
 
+void fillMesh(std::vector<VertexAtrr>& list);
+void fillMesh(std::vector<Triangle>& list);
 //void fillTriangle2(const Vector4& v0, const Vector4& v1,const Vector4& v2);
 //Vector4 barycentric(const Vector4& v0, const Vector4 &v1, const Vector4& v2, const Vector4& v);
 
@@ -303,7 +305,7 @@ void setPixel(const Vertex4& v);
 void bresenham(const VertexAtrr &begin, const VertexAtrr& end);
 void bresenham(int x1, int y1, int x2, int y2);
 
-
+void wireFrame(std::vector<VertexAtrr> list);
 //---------------------------------
 //       线性插值				  |
 //---------------------------------

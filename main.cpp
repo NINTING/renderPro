@@ -33,7 +33,7 @@ void init() {
 void setup() {
 	//æÿ’Û…Ë÷√
 	init();
-	memset(img,0, sizeof(img));
+	memset(img,0xff, sizeof(img));
 	Texture tex;
 	init_Texture(&tex, 255, 255);
 	//RsetFVF(FVFtexture);
@@ -42,7 +42,7 @@ void setup() {
 	PresentTex();
 	Matrix Vm, Pm;
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(-3.0f, 0.0f, 1.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0 , 0);
+	Vector4 at(1.0f, 0.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0, 0);
 	viewMatrix(Vm, at, view, up);
 	setMatrix(TS_VIEW, &Vm);
 	setMatrix(TS_PROJECTION, &Pm);
@@ -51,7 +51,7 @@ void setup() {
 	setZbuffer(Width, Height);
 	
 	//π‚’’
-	Vector4 direction(1, 1, 0, 0);
+	Vector4 direction(1, 1, 1, 1);
 	Color Lc(1, 1, 1);
 	Light direL = initDirectionalLight(direction, Lc);
 	setLight(0, &direL);
@@ -65,32 +65,7 @@ void setup() {
 
 }
 
-void fillMesh(std::vector<VertexAtrr>& list) {
-	size_t size =list.size();
-	for (int i = 0; i < size; i+=3) {
-		fillTriangle1(list[i], list[i+1], list[i+2]);
-	}
-}
 
-void fillMesh(std::vector<Triangle>& list) {
-	size_t size = list.size();
-	for (int i = 0; i < size; i ++) {
-		fillTriangle1(list[i]);
-	}
-}
-
-void wireFrame(std::vector<VertexAtrr> list) {
-	for (int i = 0; i < list.size(); i +=3) {
-		lineclip(list[i], list[i + 1]);
-		bresenham(list[i], list[i + 1]);
-		
-		lineclip(list[i], list[i + 2]);
-		bresenham(list[i], list[i + 2]);
-		
-		lineclip(list[i+1], list[i + 2]);
-		bresenham(list[i+1], list[i + 2]);
-	}
-}
 
 
 
@@ -125,9 +100,9 @@ void toScreen(Vector4 *p){
 	
 	int X = 0, Y = 0;
 	float dw = 1.0f / p->_w;
-	p->_x = (p->_x*dw + 1.0f)*Width *0.5f+X;
-	p->_y = (-p->_y*dw + 1.0f)*Height*0.5f+Y;
-	p->_z = p->_z*dw;
+	p->_x = (p->_x * dw + 1.0f) * Width * 0.5f;
+	p->_y = (-p->_y * dw + 1.0f) * Height * 0.5f;
+	p->_z = p->_z * dw;
 	p->_w = 1.0f;
 }
 
@@ -418,7 +393,7 @@ void LightCube() {
 
 	vector<Triangle> outlist;
 	IndeicesProcessPipeline(&outlist, ib, list, 12);
-	//wireFrame(outlist);
+	
 	fillMesh(outlist);
 	release(ib);
 	releaseall();
@@ -451,7 +426,7 @@ int main() {
 	setMatrix(TS_WORLD, &Tm);
 	textureCube();*/
 	
-	draw("color5.ppm");
+	draw("color6.ppm");
 	//triangleTest();
 	//getTexture("1.jpg");
 
