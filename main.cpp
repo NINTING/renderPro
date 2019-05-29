@@ -42,7 +42,7 @@ void setup() {
 	PresentTex();
 	Matrix Vm, Pm;
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
-	Vector4 at(1.0f, 0.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0, 0);
+	Vector4 at(3.0f, -3.0f, -3.0f, 1), view(0.0f, 0.0f, 0.0f, 1), up(0, 1,0, 0);
 	viewMatrix(Vm, at, view, up);
 	setMatrix(TS_VIEW, &Vm);
 	setMatrix(TS_PROJECTION, &Pm);
@@ -51,7 +51,7 @@ void setup() {
 	setZbuffer(Width, Height);
 	
 	//¹âÕÕ
-	Vector4 direction(1, 1, 1, 1);
+	Vector4 direction(3, 3, -3, 0);
 	Color Lc(1, 1, 1);
 	Light direL = initDirectionalLight(direction, Lc);
 	setLight(0, &direL);
@@ -101,7 +101,7 @@ void toScreen(Vector4 *p){
 	int X = 0, Y = 0;
 	float dw = 1.0f / p->_w;
 	p->_x = (p->_x * dw + 1.0f) * Width * 0.5f;
-	p->_y = (-p->_y * dw + 1.0f) * Height * 0.5f;
+	p->_y = (1.0f - p->_y * dw ) * Height * 0.5f;
 	p->_z = p->_z * dw;
 	p->_w = 1.0f;
 }
@@ -165,15 +165,15 @@ void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, 
 			VertexShader(tri.v2,LCount);
 
 			MatrixApply(&tri.v0._v , tri.v0._v, ProjectMatr);
-			tri.v0.rhw = 1.0f / tri.v0._v._w;
+			tri.v0.rhw = 1.0/tri.v0._v._w;
 			AttrMulRhw(tri.v0, vb[ib[i]], tri.v0.rhw);
 			
 			MatrixApply(&tri.v1._v, tri.v1._v, ProjectMatr);
-			tri.v1.rhw = 1.0f / tri.v1._v._w;
+			tri.v1.rhw = 1.0/tri.v1._v._w;
 			AttrMulRhw(tri.v1, vb[ib[i+1]], tri.v1.rhw);
 			
 			MatrixApply(&tri.v2._v, tri.v2._v, ProjectMatr);
-			tri.v2.rhw = 1.0f / tri.v1._v._w;
+			tri.v2.rhw = 1.0/tri.v2._v._w;
 			AttrMulRhw(tri.v2, vb[ib[i+2]], tri.v2.rhw);
 			
 			outlist->push_back(tri);
@@ -353,7 +353,7 @@ void textureCube() {
 	
 }
 
-void LightCube() {
+ void LightCube() {
 
 	setup();
 	VertexAtrr v0(-1.0f, 1.0, -1.0f, 1, 0, 0), v1(1.0f, 1.0, -1.0f, 1, 0, 1),
@@ -413,7 +413,7 @@ void releaseall() {
 
 
 
-int main() {
+  int main() {
 	
 
 	//pyramid();

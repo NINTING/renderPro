@@ -36,13 +36,16 @@ void releasePreTex() {
 
 	//当前的纹理
 void getTexPixel(const Texture &Texobj ,Color* c,float x,float y) {
-	if (x <= 0.0f)x = 0.0f;
-	if (x > 1.0f)x = 1.0f;
-	if (y <= 0.0f)y = 0.0f;
-	if (y > 1.0f)y = 1.0f;
+	
 
 	x *= Texobj.width - 1;
 	y *= Texobj.height - 1;
+	
+	if (x <= 0.0f)x = 0.0f;
+	if (x > Texobj.width-1)x = Texobj.width - 1;
+	if (y <= 0.0f)y = 0.0f;
+	if (y > Texobj.height - 1)y = Texobj.height - 1;
+	
 	int lx = floorf(x), rx = ceilf(x);
 	int ty = floorf(y), by = ceilf(y);
 
@@ -234,7 +237,7 @@ void setPixel(int x, int y, Color color) {
 	
 	checkColor(color);
 
-	p[0] = (char)(color._r*255+0.5) ,p[1] = (char)(color._g*255+0.5) , p[2] = (char)(color._b*255+0.5);
+	p[0] = (char)(color._r*255) ,p[1] = (char)(color._g*255) , p[2] = (char)(color._b*255);
 
 }
 void setPixel(const VertexAtrr& va) {
@@ -348,11 +351,18 @@ void vertexInterp(VertexAtrr *out,const VertexAtrr &v0, const VertexAtrr &v1,flo
 	out->_v._x = interp(v0._v._x, v1._v._x, t);
 	out->_v._y = interp(v0._v._y, v1._v._y, t);
 	out->_v._z = interp(v0._v._z, v1._v._z, t);
-	float BoneOverZ = v0.rhw;
-	float ToneOverZ = v1.rhw;
 
-	
-	out->rhw   = interp(BoneOverZ, ToneOverZ, t);
+	/*float BoneOverZ = 1.0 / v0.rhw;
+	float ToneOverZ = 1.0 / v1.rhw;*/
+
+	//out->rhw = interp(BoneOverZ, ToneOverZ, t);
+	//out->_c._b = interp(v0._c._b*BoneOverZ, v1._c._b*ToneOverZ, t);
+	//out->_c._r = interp(v0._c._r*BoneOverZ, v1._c._r*ToneOverZ, t);
+	//out->_c._g = interp(v0._c._g*BoneOverZ, v1._c._g*ToneOverZ, t);
+	//out->_tu = interp(v0._tu*BoneOverZ, v1._tu*ToneOverZ, t);
+	//out->_tv = interp(v0._tv*BoneOverZ, v1._tv*ToneOverZ, t);
+
+	out->rhw   = interp(v0.rhw, v1.rhw, t);
 	out->_c    = ColorInterp(v0._c,v1._c,t);
 	out->_tu   = interp(v0._tu, v1._tu, t);
 	out->_tv   = interp(v0._tv, v1._tv, t);
@@ -457,9 +467,9 @@ void lineclip(VertexAtrr &a, VertexAtrr &b) {
 //       向量相关函数			  |
 //---------------------------------
 void AttrMulRhw(VertexAtrr& out, const VertexAtrr& in, float rhw) {
-	out._c = in._c * rhw;
-	out._tu = in._tu * rhw;
-	out._tv = in._tv * rhw;
+	out._c = in._c *rhw;
+	out._tu = in._tu *rhw;
+	out._tv = in._tv *rhw;
 	out.ld *= rhw; out.ls *= rhw;
 }
 
