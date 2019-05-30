@@ -2,10 +2,12 @@
 #include<vector>
 #include<iostream>
 #include<cstdio>
+#include"Device.h"
 #define PI 3.14159265359f
-
-
 using namespace std;
+
+Device dev;
+
 void releaseall();
 
 int LCount;
@@ -13,14 +15,14 @@ int LCount;
 Matrix tranMatrix;
 Matrix ProjectMatr, ViewMatr, WorldMatr;
 
-void setMatrix(int flag, Matrix * m) {
-	if (flag & TS_WORLD)
-		WorldMatr = *m;
-	if (flag & TS_VIEW)
-		ViewMatr = *m;
-	if (flag & TS_PROJECTION)
-		ProjectMatr = *m;
-}
+//void setMatrix(int flag, Matrix* m) {
+//	if (flag & TS_WORLD)
+//		WorldMatr = *m;
+//	if (flag & TS_VIEW)
+//		ViewMatr = *m;
+//	if (flag & TS_PROJECTION)
+//		ProjectMatr = *m;
+//}
 
 void init() {
 	MatrixIdentity(ProjectMatr);
@@ -34,11 +36,12 @@ void setup() {
 	//æÿ’Û…Ë÷√
 	init();
 	memset(img,0xff, sizeof(img));
+	dev.setframeBuffer(img);
 	Texture tex;
 	init_Texture(&tex, 255, 255);
 	//RsetFVF(FVFtexture);
 	RsetFVF(FVFtexture);
-	RsetTex(&tex);
+	dev.setTexture(&tex);
 	PresentTex();
 	Matrix Vm, Pm;
 	PerspectiveMatrix(&Pm, PI * 0.5, Width / Height, 1, 500);
@@ -129,9 +132,7 @@ void release(t * arr) {
 
 
 
-void getTranMatrix() {
-	tranMatrix = WorldMatr * ViewMatr;
-}
+
 
 void IndeicesProcessPipeline(vector<Triangle>* outlist,const indeiceBuffer* ib, const vector<VertexAtrr>&vb,int TriangleNum) {
 
@@ -419,7 +420,8 @@ void releaseall() {
 	//pyramid();
 	
 	//Cubetest();
-	
+
+	initDevice(&dev,600,600)
 	LightCube();
 	/*Matrix Tm;
 	MatrixTranslation(Tm, 0.5f, 0.0f, 2.0f);
